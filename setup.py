@@ -19,7 +19,7 @@ glypy_module = Extension(name              = '_' + MODULE_C_NAME,
                         libraries          = [MODULE_PY_NAME],
                         swig_opts          = ['-modern','-Wextra','-outdir','src/' + MODULE_PY_NAME, INCLUDE_PATH],
                         # Disable warnings (which often discomfort normal users :)) for autocompile code
-                        extra_compile_args = ['-Wno-unused-label','-Wno-unused-but-set-variable']
+                        extra_compile_args = ['-Wno-unused-label','-Wno-unused-but-set-variable','-ggdb3']
                         )
 
 setup(

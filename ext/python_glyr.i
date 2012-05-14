@@ -1,9 +1,11 @@
-/*
- * This is the config file for SWIG, the binding generator for a plethora of languages
- * Only thing not working right now:
- * glyr_opt_dlcallback() - as it requires some C-ruby magic to get it to work.
-*/
- 
+/* Python bindings for libglyr - SWIG Interface file
+ *
+ * All API offered by libglyr is included here, plus 
+ * additional helpers for use with byte-arrays and callbacks.
+ *
+ * This is Python3 only, Python2 would require some extra-work I think.
+ */
+
 /* module name */
 %module cglyr 
 
@@ -30,26 +32,86 @@
 // ----------------------------------------------------------------
 
 %runtime %{
+    /* Pack the data of a GlyrMemCache into an PyByteArray
+     *
+     * This is a wrapper around cache->data
+     */
     PyObject * byte_array_from_cache(GlyrMemCache * cache) 
     {
         if(cache == NULL)
             return NULL;
 
-#if PY_MAJOR_VERSION >= 3
         return PyByteArray_FromStringAndSize(cache->data,cache->size);
-#else
-        return PyBuffer_FromMemory(cache->data,cache->size);
-#endif
+    }
+
+    /* Set the content of an ByteArray to a GlyrMemCache
+     * This involves no copying.
+     *
+     * This is a wrapper aroung glyr_cache_set_data()
+     */
+    void set_data_from_byte_array(GlyrMemCache * cache, PyObject * byteArr)
+    {
+        if(cache == NULL || byteArr == NULL)
+            return;
+
+        if(PyByteArray_Check(byteArr))
+        {
+            Py_INCREF(byteArr);
+            glyr_cache_set_data(cache,PyByteArray_AsString(byteArr),PyByteArray_Size(byteArr));
+        }
+        else
+        {
+            fprintf(stderr,"set_data_from_byte_array: Passed object is not a valid ByteArray\n");
+        }
     }
 %}
 
 //////////////////////////
 
+/* 
+ * Make above func-calls actually available
+ */
 %extend GlyrMemCache {
-    PyObject * byte_array() {
+    PyObject * get_byte_array() {
         return byte_array_from_cache($self);
     }
+
+    void set_byte_array(PyObject * byteArr) {
+        set_data_from_byte_array($self,byteArr);
+    }
+
+    void free() {
+        glyr_cache_free($self);
+        $self = NULL;
+    }
 };
+
+//////////////////////////
+
+%extend GlyrQuery {
+    void free() {
+        glyr_query_destroy($self);
+        $self = NULL;
+    }
+}
+
+//////////////////////////
+
+%extend GlyrDatabase {
+    void free() {
+        glyr_db_destroy($self);
+        $self = NULL;
+    }
+}
+
+//////////////////////////
+
+%extend GlyrFetcherInfo {
+    void free() {
+        glyr_info_free($self);
+        $self = NULL;
+    }
+}
 
 //////////////////////////
            
@@ -100,7 +162,7 @@ void glyr_opt_pycallback(GlyrQuery * q, PyObject *PyFunc);
 
 %inline %{
     /* This function matches the prototype of a normal C callback
-       function for our widget. However, the clientdata pointer
+       function for our Query. However, the callback.user_pointer
        actually refers to a Python callable object. */
     static GLYR_ERROR PythonCallBack(GlyrMemCache * c, GlyrQuery * q)
     {
@@ -146,4 +208,5 @@ void glyr_opt_pycallback(GlyrQuery * q, PyObject *PyFunc);
 %{
   glyr_init();
   atexit(glyr_cleanup);
+  Py_INCREF(m);
 %}
