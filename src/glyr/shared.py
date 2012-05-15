@@ -3,7 +3,7 @@
 
 import sys
 
- # Recipe taken from:
+# Recipe taken from:
 # http://code.activestate.com/recipes/410698-property-decorator-for-python-24/
 def Property(function):
     keys = 'fget',  'fset',  'fdel'
@@ -25,6 +25,4 @@ def linklist_to_list(head):
         while nodeptr:
             rlist.append(nodeptr)
             nodeptr = nodeptr.next
-
     return rlist
-

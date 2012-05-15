@@ -2,28 +2,56 @@
 # encoding: utf-8
 import cglyr as C
 from shared import Property
+     
+__all__ = ['Cache']
+
+REPR_TEMPLATE = """
+FROM: <{source_url}>
+PROV: {provider}
+SIZE: {byte_size} Bytes
+MSUM: {md5sum}
+TYPE: {type_str}
+SAFE: {safe}
+RATE: {rating}
+STMP: {timestamp}
+DATA: {data}      
+"""
 
 class Cache(object):
     """
     Cache represents a single item from a Query.
     """
-    def __init__(self,  cobj = None):
+    def __init__(self,  cobj = None, delete_struct = True):
         if cobj == None: 
             self.__cache = C.glyr_cache_new()
         else:
             self.__cache = cobj
+
+        self.__delete_struct = delete_struct
  
     def __repr__(self):
-        # TODO: Own formatting needed
-        C.glyr_cache_print(self.__cache)
-        return ""
+        return REPR_TEMPLATE.format(
+                source_url = self.source_url,
+                provider   = self.provider,
+                byte_size  = self.size,
+                md5sum     = self.md5sum,
+                type_str   = self.data_type,
+                safe       = self.is_cached,
+                rating     = self.rating,
+                timestamp  = self.timestamp,
+                data       = self.data)
 
     def __len__(self):
         return self.size
 
     def __del__(self):
-        self.__cache.free()
+        if self.__delete_struct:
+            self.__cache.free()
     
+    @classmethod
+    def make_dummy(cls):
+        return Cache(cobj = C.glyr_db_make_dummy())
+
     @Property
     def cobj():
         """Set the cobj of this Item"""

@@ -68,6 +68,14 @@
 
 //////////////////////////
 
+/*
+ * Our new python callback registration function.  Note the use of 
+ * a typemap to grab a PyObject.
+ */
+void glyr_opt_pycallback(GlyrQuery * q, PyObject *PyFunc);
+void glyr_db_foreach_pycallback(GlyrDatabase * db, PyObject *PyFunc);
+
+
 /* 
  * Make above func-calls actually available
  */
@@ -89,6 +97,10 @@
 //////////////////////////
 
 %extend GlyrQuery {
+    void register_callback(PyObject *PyFunc) {
+        glyr_opt_pycallback($self,PyFunc);
+    }     
+
     void free() {
         glyr_query_destroy($self);
         $self = NULL;
@@ -98,6 +110,23 @@
 //////////////////////////
 
 %extend GlyrDatabase {
+    /* Handling raw md5sums may be painful in Python */
+    void db_replace(const char * md5sum_str,
+                    GlyrQuery * query, GlyrMemCache * cache) {
+        unsigned char md5sum_buf[16];
+
+        if(md5sum_str == NULL)
+            return;
+        puts(md5sum_str);
+
+        glyr_string_to_md5sum(md5sum_str,md5sum_buf);
+        glyr_db_replace($self,md5sum_buf, query, cache);
+    }
+
+    void foreach(PyObject *PyFunc) {
+        glyr_db_foreach_pycallback($self,PyFunc);
+    }
+
     void free() {
         glyr_db_destroy($self);
         $self = NULL;
@@ -127,11 +156,6 @@
   $1 = $input;
 }
 
-/*
- * Our new python callback registration function.  Note the use of 
- * a typemap to grab a PyObject.
- */
-void glyr_opt_pycallback(GlyrQuery * q, PyObject *PyFunc);
                                                                 
 
 // ----------------------------------------------------------------
@@ -141,30 +165,30 @@ void glyr_opt_pycallback(GlyrQuery * q, PyObject *PyFunc);
 
 %runtime %{
     /* Prototype */
-    static GLYR_ERROR PythonCallBack(GlyrMemCache * c, GlyrQuery * q);
+    static GLYR_ERROR PythonDownloadCallback(GlyrMemCache * c, GlyrQuery * q);
+    static int PythonDBForearchCallback(GlyrQuery * q, GlyrMemCache * c, void * userptr);
 
-    /* Callback Setter */
+    /* Callback Setter for the Download callback */
     static void glyr_opt_pycallback(GlyrQuery * q, PyObject * PyFunc) {
-      glyr_opt_dlcallback(q,PythonCallBack, (void *) PyFunc);
+      glyr_opt_dlcallback(q,PythonDownloadCallback, (void *) PyFunc);
       Py_INCREF(PyFunc);
+    }
+
+    /* Callback Setter for the Foreach callback */
+    static void glyr_db_foreach_pycallback(GlyrDatabase * db, PyObject * PyFunc) {
+        glyr_db_foreach(db,PythonDBForearchCallback, (void *) PyFunc);
+        Py_INCREF(PyFunc);
     }
 %}
 
 //////////////////////////
 
-%extend GlyrQuery {
-    void register_callback(PyObject *PyFunc) {
-        glyr_opt_pycallback($self,PyFunc);
-    }
-};
-
-//////////////////////////
-
 %inline %{
+
     /* This function matches the prototype of a normal C callback
        function for our Query. However, the callback.user_pointer
        actually refers to a Python callable object. */
-    static GLYR_ERROR PythonCallBack(GlyrMemCache * c, GlyrQuery * q)
+    static GLYR_ERROR PythonDownloadCallback(GlyrMemCache * c, GlyrQuery * q)
     {
        PyObject * func, * arglist,
                 * pycache, * pyquery,
@@ -187,6 +211,32 @@ void glyr_opt_pycallback(GlyrQuery * q, PyObject *PyFunc);
        result = PyEval_CallObject(func,arglist);
        Py_DECREF(arglist);
 
+       if(result != NULL) {
+         dres = PyLong_AsLong(result);
+       }
+       Py_XDECREF(result);
+       return dres;
+
+    fail:
+       return 0;
+    }
+
+    static int PythonDBForearchCallback(GlyrQuery * q, GlyrMemCache * c, void * userptr) {
+       PyObject * func = (PyObject *) userptr;
+       PyObject * pycache, * pyquery, * result, * arglist;
+       long dres = 0;
+
+       pycache = SWIG_NewPointerObj(SWIG_as_voidptr(c), SWIGTYPE_p__GlyrMemCache, 0); 
+       pyquery = SWIG_NewPointerObj(SWIG_as_voidptr(q), SWIGTYPE_p__GlyrQuery,    0); 
+
+       arglist = Py_BuildValue("(OO)",pyquery,pycache);
+       if(arglist == NULL)
+           goto fail;
+       
+
+       result = PyEval_CallObject(func,arglist);
+       Py_DECREF(arglist);
+       
        if(result != NULL) {
          dres = PyLong_AsLong(result);
        }
