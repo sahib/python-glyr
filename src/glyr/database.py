@@ -6,6 +6,14 @@ import shared
 from cache import Cache
 from query import Query
 
+def filename():
+    return C.GLYR_DB_FILENAME
+    
+def foreach_proxy(query, cache, callback):
+    q = Query(cobj = query, delete_struct = True)
+    c = Cache(cobj = cache, delete_struct = False)
+    return callback(q, c)
+
 class Database(object):
     def __init__(self,  db_path = '',  cobj = None):
         if cobj == None:
@@ -35,22 +43,20 @@ class Database(object):
 
     def replace(self, cksum_str, query, cache):
         self.__db.db_replace(cksum_str,query.cobj,cache.cobj)
-        pass
 
     def foreach(self, func):
-        self.__db.foreach(func)
-    
+        self.__db.foreach(foreach_proxy, func)
+
 
 if __name__ == '__main__':
     q = Query(get_type = 'cover',  artist = 'Akrea',  album = 'Lebenslinie') 
-
     db = Database('/tmp')
     
     def foreach_cb(query, cache):
-        mc = Cache(cobj = cache, delete_struct = False)
-        print('..... =>')
-        print(mc)
-        print('<= .....')
+        if not cache.is_image:
+            print(cache)
+        else:
+            print('>>> imagedata <<<')
         return 0 # means: continue
      
     dummy_query = Query(get_type = 'lyrics', artist = 'Akrea', title = 'Trugbild')
@@ -59,14 +65,16 @@ if __name__ == '__main__':
     
     db.insert(dummy_query,dummy_cache)
 
+    print('Before foreach')
     db.foreach(foreach_cb)
-    print('------------------')
+    print('After foreach')
     rc = db.replace(dummy_cache.md5sum, dummy_query, Cache.make_dummy()) 
 
+    print('Next Foreach:')
     db.foreach(foreach_cb)
 
     db.delete(dummy_query)
-    print('------------------')
+    #print('------------------')
     db.foreach(foreach_cb)
-    print('------------------')
+    #print('------------------')
     del db

@@ -6,6 +6,10 @@ import sys
 # Recipe taken from:
 # http://code.activestate.com/recipes/410698-property-decorator-for-python-24/
 def Property(function):
+    """
+    A nicer way to implement getter/setter pairs than the 
+    standard property() function
+    """
     keys = 'fget',  'fset',  'fdel'
     func_locals = {'doc':function.__doc__}
     def probeFunc(frame,  event, arg):
@@ -19,6 +23,11 @@ def Property(function):
     return property(**func_locals)   
 
 def linklist_to_list(head):
+    """
+    Convert a C-ish linked list to a python []
+    GlyrMemCache has a 'next' attribute, which
+    references the next Cache, in Line.
+    """
     rlist = []
     if hasattr(head,'next'):
         nodeptr = head

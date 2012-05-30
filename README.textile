@@ -5,12 +5,14 @@ h3. Building a Python testmodule
 
 h4. Using setup.py to build the module
 
-# Generate actual bindings
-## @$ swig -python python_glyr.i@
 # Run setup.py (and cross fingers)
 ## @python setup.py build_ext --inplace@
 
+Installing might, or might not work.
+
 h4. Manual building of the module
+
+(You do not want to do this)
 
 # Generate actual bindings
 ## @$ swig -python python_glyr.i@

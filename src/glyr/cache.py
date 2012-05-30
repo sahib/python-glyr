@@ -3,8 +3,6 @@
 import cglyr as C
 from shared import Property
      
-__all__ = ['Cache']
-
 REPR_TEMPLATE = """
 FROM: <{source_url}>
 PROV: {provider}

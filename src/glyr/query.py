@@ -7,6 +7,8 @@ Send actual queries to libglyr
 import cglyr as C
 import shared
 
+from cache import Cache
+
 def _lookup_type_from_string(type_str):
     """
     Convert a type string (e.g. 'cover')
@@ -31,39 +33,55 @@ def _opt_type_wrapper(query, type_str):
     Converts type from str to an id 
     and pass it to the C-Routine
     """
-    type_id = _lookup_type_from_string(type_str)
+    type_id = C.glyr_string_to_get_type(type_str)
     C.glyr_opt_type(query, type_id)
 
+def _opt_dlcallback_wrapper(query, callback):
+    """
+    Wrap the required 2 argument function,
+    to the actual opt_function
+    """
+    C.glyr_opt_pycallback(query, _dl_callback_proxy, callback)
+
 OPT_DICT = {
-        'dlcallback'      : C.glyr_opt_pycallback,      
-        'get_type'        : _opt_type_wrapper,          
-        'artist'          : C.glyr_opt_artist,  
-        'album'           : C.glyr_opt_album,           
-        'title'           : C.glyr_opt_title,           
-        'img_minsize'     : C.glyr_opt_img_minsize,     
-        'img_maxsize'     : C.glyr_opt_img_maxsize,     
-        'parallel'        : C.glyr_opt_parallel,        
-        'timeout'         : C.glyr_opt_timeout,         
-        'redirects'       : C.glyr_opt_redirects,       
-        'useragent'       : C.glyr_opt_useragent,       
-        'lang'            : C.glyr_opt_lang,            
-        'lang_aware_only' : C.glyr_opt_lang_aware_only, 
-        'number'          : C.glyr_opt_number,          
-        'verbosity'       : C.glyr_opt_verbosity,       
-        'from'            : C.glyr_opt_from,            
-        'plugmax'         : C.glyr_opt_plugmax,         
-        'allowed_formats' : C.glyr_opt_allowed_formats, 
-        'download'        : C.glyr_opt_download,        
-        'fuzzyness'       : C.glyr_opt_fuzzyness,       
-        'qsratio'         : C.glyr_opt_qsratio,         
-        'proxy'           : C.glyr_opt_proxy,           
-        'force_utf8'      : C.glyr_opt_force_utf8,      
-        'lookup_db'       : C.glyr_opt_lookup_db,       
-        'db_autowrite'    : C.glyr_opt_db_autowrite,    
-        'db_autoread'     : C.glyr_opt_db_autoread,     
-        'musictree_path'  : C.glyr_opt_musictree_path,  
+        'dlcallback'      : (_opt_dlcallback_wrapper,   None                           ),
+        'get_type'        : (_opt_type_wrapper,         C.GLYR_GET_UNSURE              ),
+        'artist'          : (C.glyr_opt_artist,         None                           ),
+        'album'           : (C.glyr_opt_album,          None                           ),
+        'title'           : (C.glyr_opt_title,          None                           ),
+        'img_minsize'     : (C.glyr_opt_img_minsize,    C.GLYR_DEFAULT_CMINSIZE        ),
+        'img_maxsize'     : (C.glyr_opt_img_maxsize,    C.GLYR_DEFAULT_CMAXSIZE        ),
+        'parallel'        : (C.glyr_opt_parallel,       C.GLYR_DEFAULT_PARALLEL        ),
+        'timeout'         : (C.glyr_opt_timeout,        C.GLYR_DEFAULT_TIMEOUT         ),
+        'redirects'       : (C.glyr_opt_redirects,      C.GLYR_DEFAULT_REDIRECTS       ),
+        'useragent'       : (C.glyr_opt_useragent,      C.GLYR_SWIG_USERAGENT          ),
+        'lang'            : (C.glyr_opt_lang,           C.GLYR_DEFAULT_LANG            ),
+        'lang_aware_only' : (C.glyr_opt_lang_aware_only,False                          ),
+        'number'          : (C.glyr_opt_number,         C.GLYR_DEFAULT_NUMBER          ),
+        'verbosity'       : (C.glyr_opt_verbosity,      C.GLYR_DEFAULT_VERBOSITY       ),
+        'from'            : (C.glyr_opt_from,           C.GLYR_DEFAULT_FROM            ),
+        'plugmax'         : (C.glyr_opt_plugmax,        C.GLYR_DEFAULT_PLUGMAX         ),
+        'allowed_formats' : (C.glyr_opt_allowed_formats,C.GLYR_DEFAULT_ALLOWED_FORMATS ),
+        'download'        : (C.glyr_opt_download,       True                           ),
+        'fuzzyness'       : (C.glyr_opt_fuzzyness,      C.GLYR_DEFAULT_FUZZYNESS       ),
+        'qsratio'         : (C.glyr_opt_qsratio,        C.GLYR_DEFAULT_QSRATIO         ),
+        'proxy'           : (C.glyr_opt_proxy,          None                           ),
+        'force_utf8'      : (C.glyr_opt_force_utf8,     False                          ),
+        'lookup_db'       : (C.glyr_opt_lookup_db,      None                           ),
+        'db_autowrite'    : (C.glyr_opt_db_autowrite,   True                           ),
+        'db_autoread'     : (C.glyr_opt_db_autoread,    True                           ),
+        'musictree_path'  : (C.glyr_opt_musictree_path, None                           ),
 }
 
+
+def _dl_callback_proxy(cache, query, callback):
+    c = Cache(cobj = cache)
+    q = Query(cobj = query)
+    rc = callback(q, c)
+    if rc == None:
+        return 0
+    else:
+        return rc
 
 class Query(object):
     """
@@ -107,9 +125,21 @@ class Query(object):
         Set a single glyr_opt()
         """
         try:
-            OPT_DICT[name](self.__query, val)
+            OPT_DICT[name][0](self.__query, val)
         except KeyError: 
             print('Warning: No such option:', name)
+
+    def default(self, name):
+        """
+        Lookup the Default for the option in name
+        """
+        try:
+            return OPT_DICT[name][1]
+        except KeyError: 
+            print('Warning: No such option:', name)
+
+        return None
+
 
     def configure(self,  **kwargs):
         """
@@ -135,9 +165,6 @@ class Query(object):
         return shared.linklist_to_list(results)
 
 
-
-
-
 if __name__ == '__main__':
     def funny_smelling_callback(cache, query):
         """
@@ -147,6 +174,7 @@ if __name__ == '__main__':
         print('Received:', cache.data)
         print('From Query:', query)
         print('</EXAMPLE CALLBACK>')
+        return 0
 
     def main():
         """
@@ -166,4 +194,9 @@ if __name__ == '__main__':
         qry.commit()
         del db_conn
 
+        print(qry.default('from'))
+        qry._from = 'Hello'
+        print(qry._from)
+
+    # Execute some testuse of the API
     main()

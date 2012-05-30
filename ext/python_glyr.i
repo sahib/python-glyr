@@ -15,6 +15,7 @@
 #include <glyr/cache.h>   
 #include <glyr/testing.h> 
 #include <glyr/misc.h>    
+#include <glyr/config.h>
 %}
 
 /* parse headers */
@@ -25,6 +26,9 @@
 %include <glyr/testing.h>
 %include <glyr/misc.h>
 
+//#define GLYR_SWIG_USERAGENT "libglyr/1.0-0 (Catholic Cat) +https://www.github.com/sahib/glyr"
+
+#define GLYR_SWIG_USERAGENT GLYR_DEFAULT_USERAGENT 
 //////////////////////////
 
 // ----------------------------------------------------------------
@@ -72,8 +76,8 @@
  * Our new python callback registration function.  Note the use of 
  * a typemap to grab a PyObject.
  */
-void glyr_opt_pycallback(GlyrQuery * q, PyObject *PyFunc);
-void glyr_db_foreach_pycallback(GlyrDatabase * db, PyObject *PyFunc);
+void glyr_opt_pycallback(GlyrQuery * q, PyObject *PyFunc, PyObject * ExtraData);
+void glyr_db_foreach_pycallback(GlyrDatabase * db, PyObject *PyFunc, PyObject *ExtraData);
 
 
 /* 
@@ -97,8 +101,8 @@ void glyr_db_foreach_pycallback(GlyrDatabase * db, PyObject *PyFunc);
 //////////////////////////
 
 %extend GlyrQuery {
-    void register_callback(PyObject *PyFunc) {
-        glyr_opt_pycallback($self,PyFunc);
+    void register_callback(PyObject *PyFunc, PyObject * ExtraData) {
+        glyr_opt_pycallback($self,PyFunc,ExtraData);
     }     
 
     void free() {
@@ -117,14 +121,13 @@ void glyr_db_foreach_pycallback(GlyrDatabase * db, PyObject *PyFunc);
 
         if(md5sum_str == NULL)
             return;
-        puts(md5sum_str);
 
         glyr_string_to_md5sum(md5sum_str,md5sum_buf);
         glyr_db_replace($self,md5sum_buf, query, cache);
     }
 
-    void foreach(PyObject *PyFunc) {
-        glyr_db_foreach_pycallback($self,PyFunc);
+    void foreach(PyObject *PyFunc, PyObject *ExtraData) {
+        glyr_db_foreach_pycallback($self, PyFunc, ExtraData);
     }
 
     void free() {
@@ -156,7 +159,7 @@ void glyr_db_foreach_pycallback(GlyrDatabase * db, PyObject *PyFunc);
   $1 = $input;
 }
 
-                                                                
+                                                      
 
 // ----------------------------------------------------------------
 // Python helper functions for adding callbacks
@@ -164,20 +167,32 @@ void glyr_db_foreach_pycallback(GlyrDatabase * db, PyObject *PyFunc);
 // ----------------------------------------------------------------
 
 %runtime %{
+
+    typedef struct {
+        PyObject * func;
+        PyObject * data;
+    } ForeachCallbackData;
+
     /* Prototype */
     static GLYR_ERROR PythonDownloadCallback(GlyrMemCache * c, GlyrQuery * q);
     static int PythonDBForearchCallback(GlyrQuery * q, GlyrMemCache * c, void * userptr);
 
     /* Callback Setter for the Download callback */
-    static void glyr_opt_pycallback(GlyrQuery * q, PyObject * PyFunc) {
-      glyr_opt_dlcallback(q,PythonDownloadCallback, (void *) PyFunc);
+    static void glyr_opt_pycallback(GlyrQuery * q, PyObject * PyFunc, PyObject * ExtraData) {
+      ForeachCallbackData * pass_data = malloc(sizeof(ForeachCallbackData));
+      pass_data->func = PyFunc;
+      pass_data->data = ExtraData;
+      glyr_opt_dlcallback(q,PythonDownloadCallback, (void *) pass_data);
       Py_INCREF(PyFunc);
+      Py_INCREF(ExtraData);
     }
 
     /* Callback Setter for the Foreach callback */
-    static void glyr_db_foreach_pycallback(GlyrDatabase * db, PyObject * PyFunc) {
-        glyr_db_foreach(db,PythonDBForearchCallback, (void *) PyFunc);
-        Py_INCREF(PyFunc);
+    static void glyr_db_foreach_pycallback(GlyrDatabase * db, PyObject * PyFunc, PyObject * ExtraData) {
+        ForeachCallbackData pass_data; 
+        pass_data.func = PyFunc;
+        pass_data.data = ExtraData;
+        glyr_db_foreach(db,PythonDBForearchCallback, (void *) &pass_data);
     }
 %}
 
@@ -190,25 +205,26 @@ void glyr_db_foreach_pycallback(GlyrDatabase * db, PyObject *PyFunc);
        actually refers to a Python callable object. */
     static GLYR_ERROR PythonDownloadCallback(GlyrMemCache * c, GlyrQuery * q)
     {
-       PyObject * func, * arglist,
+       PyObject * arglist,
                 * pycache, * pyquery,
                 * result;
        long dres = 0;
+
+       ForeachCallbackData * pass_data = (ForeachCallbackData *) q->callback.user_pointer;
        
        /*
         * This feels somewhat hackish, but works just fine.
         * Only Problem is that we rely that SWIG's method names
         * stay like this
         */
-       func = (PyObject *) q->callback.user_pointer;
        pycache = SWIG_NewPointerObj(SWIG_as_voidptr(c), SWIGTYPE_p__GlyrMemCache, 0); 
        pyquery = SWIG_NewPointerObj(SWIG_as_voidptr(q), SWIGTYPE_p__GlyrQuery,    0); 
 
-       arglist = Py_BuildValue("(OO)",pycache,pyquery);
+       arglist = Py_BuildValue("(OOO)",pycache,pyquery,pass_data->data);
        if(arglist == NULL)
            goto fail;
 
-       result = PyEval_CallObject(func,arglist);
+       result = PyEval_CallObject(pass_data->func,arglist);
        Py_DECREF(arglist);
 
        if(result != NULL) {
@@ -221,15 +237,21 @@ void glyr_db_foreach_pycallback(GlyrDatabase * db, PyObject *PyFunc);
        return 0;
     }
 
+    //////////////////////////
+
     static int PythonDBForearchCallback(GlyrQuery * q, GlyrMemCache * c, void * userptr) {
-       PyObject * func = (PyObject *) userptr;
+       ForeachCallbackData * pass_data = userptr;
+       if(pass_data == NULL)
+           return -1;
+
+       PyObject * func = pass_data->func;
        PyObject * pycache, * pyquery, * result, * arglist;
        long dres = 0;
 
        pycache = SWIG_NewPointerObj(SWIG_as_voidptr(c), SWIGTYPE_p__GlyrMemCache, 0); 
        pyquery = SWIG_NewPointerObj(SWIG_as_voidptr(q), SWIGTYPE_p__GlyrQuery,    0); 
 
-       arglist = Py_BuildValue("(OO)",pyquery,pycache);
+       arglist = Py_BuildValue("(OOO)",pyquery,pycache,pass_data->data);
        if(arglist == NULL)
            goto fail;
        
@@ -244,6 +266,7 @@ void glyr_db_foreach_pycallback(GlyrDatabase * db, PyObject *PyFunc);
        return dres;
 
     fail:
+       fprintf(stderr,"Undefined error while db_foreach()\n");
        return 0;
     }
 %}
