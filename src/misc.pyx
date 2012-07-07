@@ -6,12 +6,11 @@ VERSION = (C.VERSION_MAJOR, C.VERSION_MINOR, C.VERSION_MIRCO)
 def version():
     return _stringify(C.glyr_version()) + ' {Cython Wrapped}'
 
+
 def download(url):
     byte_url = _bytify(url)
     cdef C.GlyrMemCache * c_cache = C.glyr_download(byte_url, NULL)
-    py_cache = Cache()
-    py_cache._cm = c_cache
-    return py_cache
+    return cache_from_pointer(c_cache)
 
 
 def type_is_image(type_str):
@@ -37,12 +36,12 @@ def levenshtein_normcmp(string, other):
 def call_url_generator(provider_name, get_type, Query query):
     provider_name_bytes = _bytify(provider_name)
     get_type_id = C.glyr_string_to_get_type(get_type)
-    return C.glyr_testing_call_url(provider_name_bytes, get_type_id, &query._cq)
+    return C.glyr_testing_call_url(provider_name_bytes, get_type_id, query._ptr())
 
 
 def call_data_parser(provider_name, get_type, Query query, Cache cache):
     provider_name_bytes = _bytify(provider_name)
     get_type_id = C.glyr_string_to_get_type(get_type)
     cdef C.GlyrMemCache * rc = NULL
-    rc = C.glyr_testing_call_parser(provider_name_bytes, get_type_id, &query._cq, cache._cm)
+    rc = C.glyr_testing_call_parser(provider_name_bytes, get_type_id, query._ptr(), cache._ptr())
     return cache_from_pointer(rc)
