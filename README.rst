@@ -16,8 +16,9 @@ Building Cython module::
 Usage
 -----
 
-Probably not yet working example::
+An example that may even work::
 
   import plyr
   q = plyr.Query(artist='Akrea', album='Lebenslinie', get_type='cover')
-  q.commit()
+  items = q.commit()
+  print(items[0].data)

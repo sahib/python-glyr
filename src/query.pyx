@@ -9,7 +9,9 @@ include "cache.pyx"
 cdef int _actual_callback(C.GlyrMemCache * c, C.GlyrQuery * q):
     'Proxy callback, calling set callable object, and returning rc to C-Side'
     py_callback = <object>q.callback.user_pointer
-    return py_callback(1, 2)
+    pyq = query_from_pointer(q)
+    pyc = cache_from_pointer(c)
+    return py_callback(pyc, pyq)
 
 
 cdef query_from_pointer(C.GlyrQuery * query):
@@ -68,7 +70,7 @@ cdef class Query:
 
             C.glyr_opt_type(self._ptr(), actual_type)
         def __get__(self):
-            return _stringify(C.glyr_get_type_to_string(self._ptr().type))
+            return _stringify(<char*>C.glyr_get_type_to_string(self._ptr().type))
 
     property number:
         def __set__(self, int number):
@@ -251,4 +253,4 @@ cdef class Query:
     property error:
         'String representation of internally happened error (might be "No Error")'
         def __get__(self):
-            return _stringify(C.glyr_strerror(self._ptr().q_errno))
+            return _stringify(<char*>C.glyr_strerror(self._ptr().q_errno))

@@ -49,8 +49,6 @@ cdef class Cache:
     #                        Other methods / functions                        #
     ###########################################################################
 
-    # TODO: __repr__
-
     def update_checksum(self):
         C.glyr_cache_update_md5sum(self._ptr())
 
@@ -106,13 +104,16 @@ cdef class Cache:
             cdef C.GLYR_DATA_TYPE type_id = C.glyr_string_to_data_type(byte_type_str)
             C.glyr_cache_set_type(self._ptr(), type_id)
         def __get__(self):
-            return _stringify(C.glyr_data_type_to_string(self._ptr().data_type))
+            return _stringify(<char*>C.glyr_data_type_to_string(self._ptr().data_type))
 
     property data:
         def __set__(self, data):
             C.glyr_cache_set_data(self._ptr(), data, len(data))
         def __get__(self):
-            return self._ptr().data[:self._ptr().size]
+            if self._ptr().data is not NULL:
+                return self._ptr().data[:self._ptr().size]
+            else:
+                return b''
 
     property size:
         def __set__(self,  size):
@@ -125,7 +126,7 @@ cdef class Cache:
             byte_dsrc = _bytify(dsrc)
             C.glyr_cache_set_dsrc(self._ptr(), byte_dsrc)
         def __get__(self):
-            return self._ptr().dsrc
+            return _stringify(self._ptr().dsrc)
 
     property provider:
         def __set__(self,  prov):
