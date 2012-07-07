@@ -66,163 +66,163 @@ cdef class Query:
             else:
                 actual_type = value
 
-            C.glyr_opt_type(self._cqp, actual_type)
+            C.glyr_opt_type(self._ptr(), actual_type)
         def __get__(self):
-            return _stringify(C.glyr_get_type_to_string(self._cqp.type))
+            return _stringify(C.glyr_get_type_to_string(self._ptr().type))
 
     property number:
         def __set__(self, int number):
-            C.glyr_opt_number(self._cqp, number)
+            C.glyr_opt_number(self._ptr(), number)
         def __get__(self):
-            return self._cqp.number
+            return self._ptr().number
 
     property max_per_plugins:
         def __set__(self, int max_per_plugins):
-            C.glyr_opt_plugmax(self._cqp, max_per_plugins)
+            C.glyr_opt_plugmax(self._ptr(), max_per_plugins)
         def __get__(self):
-            return self._cqp.plugmax
+            return self._ptr().plugmax
 
     property verbosity:
         def __set__(self, int verbosity):
-            C.glyr_opt_verbosity(self._cqp, verbosity)
+            C.glyr_opt_verbosity(self._ptr(), verbosity)
         def __get__(self):
-            return self._cqp.verbosity
+            return self._ptr().verbosity
 
     property fuzzyness:
         def __set__(self, int fuzzyness):
-            C.glyr_opt_fuzzyness(self._cqp, fuzzyness)
+            C.glyr_opt_fuzzyness(self._ptr(), fuzzyness)
         def __get__(self):
-            return self._cqp.fuzzyness
+            return self._ptr().fuzzyness
 
     property img_size:
         def __set__(self, size_tuple):
-            C.glyr_opt_img_minsize(self._cqp, size_tuple[0])
-            C.glyr_opt_img_maxsize(self._cqp, size_tuple[1])
+            C.glyr_opt_img_minsize(self._ptr(), size_tuple[0])
+            C.glyr_opt_img_maxsize(self._ptr(), size_tuple[1])
         def __get__(self):
-            return [self._cqp.img_max_size, self._cqp.img_min_size]
+            return [self._ptr().img_max_size, self._ptr().img_min_size]
 
     property parallel:
         def __set__(self, int parallel):
-            C.glyr_opt_parallel(self._cqp, parallel)
+            C.glyr_opt_parallel(self._ptr(), parallel)
         def __get__(self):
-            return self._cqp.parallel
+            return self._ptr().parallel
 
     property timeout:
         def __set__(self, int timeout):
-            C.glyr_opt_timeout(self._cqp, timeout)
+            C.glyr_opt_timeout(self._ptr(), timeout)
         def __get__(self):
-            return self._cqp.timeout
+            return self._ptr().timeout
 
     property redirects:
         def __set__(self, int redirects):
-            C.glyr_opt_redirects(self._cqp, redirects)
+            C.glyr_opt_redirects(self._ptr(), redirects)
         def __get__(self):
-            return self._cqp.redirects
+            return self._ptr().redirects
 
     property force_utf8:
         def __set__(self, bool force_utf8):
-            C.glyr_opt_force_utf8(self._cqp, force_utf8)
+            C.glyr_opt_force_utf8(self._ptr(), force_utf8)
         def __get__(self):
-            return self._cqp.force_utf8
+            return self._ptr().force_utf8
 
     property qsratio:
         def __set__(self, float qsratio):
-            C.glyr_opt_qsratio(self._cqp, qsratio)
+            C.glyr_opt_qsratio(self._ptr(), qsratio)
         def __get__(self):
-            return self._cqp.qsratio
+            return self._ptr().qsratio
 
     property db_autoread:
         def __set__(self, bool db_autoread):
-            C.glyr_opt_db_autoread(self._cqp, db_autoread)
+            C.glyr_opt_db_autoread(self._ptr(), db_autoread)
         def __get__(self):
-            return self._cqp.db_autoread
+            return self._ptr().db_autoread
 
     property db_autowrite:
         def __set__(self, bool db_autowrite):
-            C.glyr_opt_db_autowrite(self._cqp, db_autowrite)
+            C.glyr_opt_db_autowrite(self._ptr(), db_autowrite)
         def __get__(self):
-            return self._cqp.db_autowrite
+            return self._ptr().db_autowrite
 
     property database:
         def __set__(self, Database database):
-            C.glyr_opt_lookup_db(self._cqp, database._cdb)
+            C.glyr_opt_lookup_db(self._ptr(), database._cdb)
         def __get__(self):
             db = Database()
-            db._cdb = self._cqp.local_db
+            db._cdb = self._ptr().local_db
             return db
 
     property lang_aware_only:
         def __set__(self, bool lang_aware_only):
-            C.glyr_opt_lang_aware_only(self._cqp, lang_aware_only)
+            C.glyr_opt_lang_aware_only(self._ptr(), lang_aware_only)
         def __get__(self):
-            return self._cqp.lang_aware_only
+            return self._ptr().lang_aware_only
 
     property language:
         def __set__(self, language):
-            C.glyr_opt_lang(self._cqp, language)
+            C.glyr_opt_lang(self._ptr(), language)
         def __get__(self):
-            return self._cqp.lang
+            return self._ptr().lang
 
     property proxy:
         def __set__(self, proxy):
-            C.glyr_opt_proxy(self._cqp, proxy)
+            C.glyr_opt_proxy(self._ptr(), proxy)
         def __get__(self):
-            return self._cqp.proxy
+            return self._ptr().proxy
 
     property artist:
         def __set__(self, value):
             byte_value = _bytify(value)
-            C.glyr_opt_artist(self._cqp, byte_value)
+            C.glyr_opt_artist(self._ptr(), byte_value)
         def __get__(self):
-            return _stringify(self._cqp.artist)
+            return _stringify(self._ptr().artist)
 
     property album:
         def __set__(self, value):
             byte_value = _bytify(value)
-            C.glyr_opt_album(self._cqp, byte_value)
+            C.glyr_opt_album(self._ptr(), byte_value)
         def __get__(self):
-            return _stringify(self._cqp.album)
+            return _stringify(self._ptr().album)
 
     property title:
         def __set__(self, value):
             byte_value = _bytify(value)
-            C.glyr_opt_title(self._cqp, byte_value)
+            C.glyr_opt_title(self._ptr(), byte_value)
         def __get__(self):
-            return _stringify(self._cqp.title)
+            return _stringify(self._ptr().title)
 
     property providers:
         def __set__(self, value_list):
             provider_string = _bytify(';'.join(value_list))
-            C.glyr_opt_from(self._cqp, provider_string)
+            C.glyr_opt_from(self._ptr(), provider_string)
         def __get__(self):
-            return _stringify(self._cqp.providers).split(';')
+            return _stringify(self._ptr().providers).split(';')
 
     property callback:
         # Save callable object as user_pointer
         # just cast it back if you do __get__
         def __set__(self, object py_func):
-            C.glyr_opt_dlcallback(self._cqp, <C.DL_callback>_actual_callback, <void*>py_func)
+            C.glyr_opt_dlcallback(self._ptr(), <C.DL_callback>_actual_callback, <void*>py_func)
         def __get__(self):
-            return <object>self._cqp.callback.user_pointer
+            return <object>self._ptr().callback.user_pointer
 
     property allowed_formats:
         def __set__(self,  allowed_formats):
             allowed_list = _bytify(';'.join(allowed_formats))
-            C.glyr_opt_allowed_formats(self._cqp, allowed_list)
+            C.glyr_opt_allowed_formats(self._ptr(), allowed_list)
         def __get__(self):
-            return _stringify(self._cqp.allowed_formats).split(';')
+            return _stringify(self._ptr().allowed_formats).split(';')
 
     property useragent:
         def __set__(self,  useragent):
-            C.glyr_opt_useragent(self._cqp, useragent)
+            C.glyr_opt_useragent(self._ptr(), useragent)
         def __get__(self):
-            return self._cqp.useragent
+            return self._ptr().useragent
 
     property musictree_path:
         def __set__(self,  musictree_path):
-            C.glyr_opt_musictree_path(self._cqp, musictree_path)
+            C.glyr_opt_musictree_path(self._ptr(), musictree_path)
         def __get__(self):
-            return self._cqp.musictree_path
+            return self._ptr().musictree_path
 
     ###########################################################################
     #                              other methods                              #
@@ -236,7 +236,7 @@ cdef class Query:
         :returns: a list of byteblobs or [] on error,
                   use error to find out what happened.
         """
-        item_list = C.glyr_get(self._cqp, NULL, NULL)
+        item_list = C.glyr_get(self._ptr(), NULL, NULL)
         return cache_list_from_pointer(item_list)
 
     def cancel(self):
@@ -246,9 +246,9 @@ cdef class Query:
               soft shutdown that finishes already running parsers, but do
               not download any new data.
         """
-        C.glyr_signal_exit(self._cqp)
+        C.glyr_signal_exit(self._ptr())
 
     property error:
         'String representation of internally happened error (might be "No Error")'
         def __get__(self):
-            return _stringify(C.glyr_strerror(self._cqp.q_errno))
+            return _stringify(C.glyr_strerror(self._ptr().q_errno))
