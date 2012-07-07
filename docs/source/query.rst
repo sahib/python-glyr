@@ -1,0 +1,4 @@
+Building Queries
+================
+
+.. automodule:: plyr
