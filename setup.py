@@ -4,5 +4,5 @@ from Cython.Distutils import build_ext
 
 setup(
     cmdclass = {'build_ext': build_ext},
-    ext_modules = [Extension("plyr", ["glyr.pyx"], libraries=['glyr'])]
+    ext_modules = [Extension("plyr", ["src/glyr.pyx"], libraries=['glyr'])]
 )

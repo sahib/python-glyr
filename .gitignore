@@ -1,6 +1,5 @@
+*.c
 build/
-__pycache__
-*.pyc
 *.o
 *.so
-*wrap*
+core
