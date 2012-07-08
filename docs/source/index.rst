@@ -9,7 +9,9 @@ Welcome to python-glyr's documentation!
 Contents:
 
 .. toctree::
+
    :maxdepth: 2
+   intro
    query
 
 

@@ -4,7 +4,7 @@ cimport glyr as C
 VERSION = (C.VERSION_MAJOR, C.VERSION_MINOR, C.VERSION_MIRCO)
 
 def version():
-    return _stringify(<char*>C.glyr_version()) + ' {Cython Wrapped}'
+    return _stringify(<char*uC.glyr_version()) + ' {Cython Wrapped}'
 
 
 def download(url):
