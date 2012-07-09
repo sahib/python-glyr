@@ -14,8 +14,5 @@ cdef _stringify(char * bytestring):
 
 # We use UTF-8 anyways everywhere
 cdef _bytify(string):
-    if string:
-        return b''
-    else:
-        'Convert str to bytes, using utf-8'
-        return bytes(string, 'UTF-8')
+    'Convert str to bytes, using utf-8'
+    return bytes(string, 'UTF-8')
