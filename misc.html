@@ -1,0 +1,220 @@
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+
+    <title>Miscellaneous Functions &mdash; python-glyr 0.1 documentation</title>
+
+<meta name="viewport" content="width=device-width; initial-scale=1.0; maximum-scale=1.0; user-scalable=0;"/>
+
+
+    
+    <link rel="stylesheet" href="_static/rtd.css" type="text/css" />
+    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '',
+        VERSION:     '0.1',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="_static/jquery.js"></script>
+    <script type="text/javascript" src="_static/underscore.js"></script>
+    <script type="text/javascript" src="_static/doctools.js"></script>
+    <script type="text/javascript" src="_static/searchtools.js"></script>
+    <link rel="top" title="python-glyr 0.1 documentation" href="index.html" />
+    <link rel="next" title="Examples" href="examples.html" />
+    <link rel="prev" title="Using a Database to cache items locally" href="database.html" /> 
+  </head>
+  <body>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="examples.html" title="Examples"
+             accesskey="N">next</a> |</li>
+        <li class="right" >
+          <a href="database.html" title="Using a Database to cache items locally"
+             accesskey="P">previous</a> |</li>
+        <li><a href="index.html">python-glyr 0.1 documentation</a> &raquo;</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body">
+            
+  <div class="section" id="miscellaneous-functions">
+<h1>Miscellaneous Functions<a class="headerlink" href="#miscellaneous-functions" title="Permalink to this headline">¶</a></h1>
+<dl class="data">
+<dt id="plyr.VERSION">
+<tt class="descclassname">plyr.</tt><tt class="descname">VERSION</tt><em class="property"> = (0, 9, 9)</em><a class="headerlink" href="#plyr.VERSION" title="Permalink to this definition">¶</a></dt>
+<dd><p>tuple() -&gt; empty tuple
+tuple(iterable) -&gt; tuple initialized from iterable&#8217;s items</p>
+<p>If the argument is a tuple, the return value is the same object.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="plyr.version">
+<tt class="descclassname">plyr.</tt><tt class="descname">version</tt><big>(</big><big>)</big><a class="headerlink" href="#plyr.version" title="Permalink to this definition">¶</a></dt>
+<dd><p>libglyr&#8217;s version string (with version number and release name)</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body">Something similar to
+<tt class="docutils literal"><span class="pre">Version</span> <span class="pre">0.9.9</span> <span class="pre">(Catholic</span> <span class="pre">Cat)</span> <span class="pre">of</span> <span class="pre">[Jun</span> <span class="pre">24</span> <span class="pre">2012]</span> <span class="pre">compiled</span> <span class="pre">at</span> <span class="pre">[22:55:56]</span></tt></td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<hr class="docutils" />
+<dl class="function">
+<dt id="plyr.type_is_image">
+<tt class="descclassname">plyr.</tt><tt class="descname">type_is_image</tt><big>(</big><big>)</big><a class="headerlink" href="#plyr.type_is_image" title="Permalink to this definition">¶</a></dt>
+<dd><p>Check if a certain type descriptor is an image.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Type_str :</th><td class="field-body">a type identifier.</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">True or False</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="plyr.download">
+<tt class="descclassname">plyr.</tt><tt class="descname">download</tt><big>(</big><big>)</big><a class="headerlink" href="#plyr.download" title="Permalink to this definition">¶</a></dt>
+<dd><p>Download a certain URL and return it as Cache.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Url :</th><td class="field-body">The URL to download.</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">A Cache instance, or None</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<hr class="docutils" />
+<dl class="function">
+<dt id="plyr.levenshtein_cmp">
+<tt class="descclassname">plyr.</tt><tt class="descname">levenshtein_cmp</tt><big>(</big><big>)</big><a class="headerlink" href="#plyr.levenshtein_cmp" title="Permalink to this definition">¶</a></dt>
+<dd><p>Compute the levenshtein distance between two strings.</p>
+<p>See also: <a class="reference external" href="http://sahib.github.com/glyr/doc/html/libglyr-Misc.html">http://sahib.github.com/glyr/doc/html/libglyr-Misc.html</a></p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">String :</th><td class="field-body">some string</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Other :</th><td class="field-body">another string</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body">An integer between 0 and max(len(string), len(other))</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="plyr.levenshtein_normcmp">
+<tt class="descclassname">plyr.</tt><tt class="descname">levenshtein_normcmp</tt><big>(</big><big>)</big><a class="headerlink" href="#plyr.levenshtein_normcmp" title="Permalink to this definition">¶</a></dt>
+<dd><p>Compute the levenshtein distance between two strings
+using additional normalization.</p>
+<p>See also: <a class="reference external" href="http://sahib.github.com/glyr/doc/html/libglyr-Misc.html">http://sahib.github.com/glyr/doc/html/libglyr-Misc.html</a></p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">String :</th><td class="field-body">some string</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Other :</th><td class="field-body">another string</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body">An integer between 0 and [no-explicit-limit]</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+</div>
+
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar">
+        <div class="sphinxsidebarwrapper">
+  <h4>Previous topic</h4>
+  <p class="topless"><a href="database.html"
+                        title="previous chapter">Using a Database to cache items locally</a></p>
+  <h4>Next topic</h4>
+  <p class="topless"><a href="examples.html"
+                        title="next chapter">Examples</a></p>
+  <h3>This Page</h3>
+  <ul class="this-page-menu">
+    <li><a href="_sources/misc.txt"
+           rel="nofollow">Show Source</a></li>
+  </ul>
+<div id="searchbox" style="display: none">
+  <h3>Quick search</h3>
+    <form class="search" action="search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    <p class="searchtip" style="font-size: 90%">
+    Enter search terms or a module, class or function name.
+    </p>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="examples.html" title="Examples"
+             >next</a> |</li>
+        <li class="right" >
+          <a href="database.html" title="Using a Database to cache items locally"
+             >previous</a> |</li>
+        <li><a href="index.html">python-glyr 0.1 documentation</a> &raquo;</li> 
+      </ul>
+    </div>
+<div class="footer">
+    &copy; Copyright 2012, Christoper Pahl.
+  Created using <a href="http://sphinx.pocoo.org/">Sphinx</a> 1.1.3.
+  <br />Theme based on <a href="http://readthedocs.org/">Read The Docs</a>
+
+</div>
+
+
+
+
+
+  </body>
+</html>

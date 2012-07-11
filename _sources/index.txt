@@ -15,8 +15,14 @@ Contents:
    query
    cache
    provider
+   database
+   misc
+   examples
 
 
+.. note::
+
+  The version of this wrapper will follow mirror libglyr's version.
 
 Indices and tables
 ==================
