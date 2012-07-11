@@ -33,3 +33,14 @@ Build & install the Wrapper: ::
    git clone git://github.com/sahib/python-glyr.git
    cd python-glyr
    sudo python setup.py install
+
+Documentation
+-------------
+
+Silly question. You're looking at it. 
+But when we're on it: There are only a few chapters, since there
+is not so much to cover. Every chapter is split into a description,
+and a reference. After all those theory chapters you are going to be rewarded
+by some practical examples.
+
+Please have fun.

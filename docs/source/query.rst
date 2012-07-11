@@ -26,3 +26,9 @@ Accessing Default Values
 
 Default Values for any option can be accessed by instantiating an empty Query,
 and using the provided properties.
+
+Reference
+---------
+
+.. autoclass:: plyr.Query
+   :members:
