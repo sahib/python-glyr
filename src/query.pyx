@@ -264,8 +264,9 @@ cdef class Query:
         :database: An instance of plyr.Database
         """
         def __set__(self, Database database):
-            self._db_prop = database
-            C.glyr_opt_lookup_db(self._ptr(), database._ptr())
+            if hasattr(database, '_ptr'):
+                self._db_prop = database
+                C.glyr_opt_lookup_db(self._ptr(), database._ptr())
         def __get__(self):
             return self._db_prop
 
@@ -293,9 +294,10 @@ cdef class Query:
         :language: Any of "en;de;fr;es;it;jp;pl;pt;ru;sv;tr;zh"
         """
         def __set__(self, language):
-            C.glyr_opt_lang(self._ptr(), language)
+            byte_language = _bytify(language)
+            C.glyr_opt_lang(self._ptr(), byte_language)
         def __get__(self):
-            return self._ptr().lang
+            return _stringify(self._ptr().lang)
 
     property proxy:
         """
@@ -304,9 +306,10 @@ cdef class Query:
         :proxy_string: Passed in the form: [protocol://][user:pass@]yourproxy.domain[:port]
         """
         def __set__(self, proxy):
-            C.glyr_opt_proxy(self._ptr(), proxy)
+            byte_proxy = _bytify(proxy)
+            C.glyr_opt_proxy(self._ptr(), byte_proxy)
         def __get__(self):
-            return self._ptr().proxy
+            return _stringify(self._ptr().proxy)
 
     property artist:
         """
@@ -392,7 +395,11 @@ cdef class Query:
         def __set__(self, object py_func):
             C.glyr_opt_dlcallback(self._ptr(), <C.DL_callback>_actual_callback, <void*>py_func)
         def __get__(self):
-            return <object>self._ptr().callback.user_pointer
+            if self._ptr().callback.user_pointer is NULL:
+                return None
+            else:
+                return <object>self._ptr().callback.user_pointer
+
 
     property allowed_formats:
         """
@@ -420,9 +427,10 @@ cdef class Query:
         :useragent: A string like "libglyr/0.9.9 (Catholic Cat) +https://www.github.com/sahib/glyr"
         """
         def __set__(self,  useragent):
-            C.glyr_opt_useragent(self._ptr(), useragent)
+            byte_useragent = _bytify(useragent)
+            C.glyr_opt_useragent(self._ptr(), byte_useragent)
         def __get__(self):
-            return self._ptr().useragent
+            return _stringify(self._ptr().useragent)
 
     property musictree_path:
         """
@@ -437,9 +445,10 @@ cdef class Query:
         :musictree_path: Something like ~/HD/Musik/DevilDriver/Beast/BlackSoulChoir.mp3
         """
         def __set__(self,  musictree_path):
-            C.glyr_opt_musictree_path(self._ptr(), musictree_path)
+            byte_musictree_path = _bytify(musictree_path)
+            C.glyr_opt_musictree_path(self._ptr(), byte_musictree_path)
         def __get__(self):
-            return self._ptr().musictree_path
+            return _stringify(self._ptr().musictree_path)
 
     property do_download:
         """

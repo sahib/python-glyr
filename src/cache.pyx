@@ -1,7 +1,7 @@
 cimport glyr as C
 
 from libc.string cimport memcpy
-
+from libc.stdlib cimport malloc
 
 cdef cache_from_pointer(C.GlyrMemCache * ptr):
     py_cache = Cache()
@@ -25,6 +25,12 @@ cdef cache_list_from_pointer(C.GlyrMemCache * head):
     return result_list
 
 
+cdef char * memdup(char * inbuf, size_t buflen):
+    cdef char * buf = <char*>malloc(buflen + 1)
+    memcpy(buf, inbuf, buflen)
+    return buf
+
+
 cdef class Cache:
     """
     A Cache is one result or item retrieved by libglyr
@@ -43,6 +49,8 @@ cdef class Cache:
 
     def __cinit__(self, **kwargs):
         self._cm = C.glyr_cache_new()
+
+        self._cm.data = memdup('', 0)
 
         for key, value in kwargs.items():
             Cache.__dict__[key].__set__(self, value)
@@ -157,8 +165,10 @@ cdef class Cache:
 
     property data:
         'Actual data as bytestring. Also settable.'
-        def __set__(self, data):
-            C.glyr_cache_set_data(self._ptr(), data, len(data))
+        def __set__(self, char * data_bytes):
+            data_size = len(data_bytes)
+            cdef char * copy_buf = memdup(data_bytes, data_size)
+            C.glyr_cache_set_data(self._ptr(), copy_buf, data_size)
         def __get__(self):
             if self._ptr().data is not NULL:
                 return self._ptr().data[:self._ptr().size]

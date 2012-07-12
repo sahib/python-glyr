@@ -3,4 +3,4 @@ Plyr - A Wrapper around libglyr, using Cython
 
 Documentation is on github-pages_.
 
-.. _github-pages: http://plyr.readthedocs.org/en/latest
+.. _github-pages: http://sahib.github.com/python-glyr/index.html 
