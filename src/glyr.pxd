@@ -156,15 +156,15 @@ cdef extern from "glyr/glyr.h":
 ###########################################################################
 
     # Init
-    void glyr_init()
-    void glyr_cleanup()
+    void glyr_init() nogil
+    void glyr_cleanup() nogil
     char * glyr_version()
 
     # Query
     void glyr_query_init(GlyrQuery * query)
     void glyr_query_destroy(GlyrQuery * query)
-    void glyr_signal_exit(GlyrQuery * query)
-    GlyrMemCache * glyr_get(GlyrQuery * query, void * p1, void * p2)
+    void glyr_signal_exit(GlyrQuery * query) nogil
+    GlyrMemCache * glyr_get(GlyrQuery * query, void * p1, void * p2) nogil
 
     # Caches
     void glyr_free_list(GlyrMemCache * head)
@@ -230,7 +230,7 @@ cdef extern from "glyr/glyr.h":
 
     # Various
     bool glyr_type_is_image(GLYR_GET_TYPE type)
-    GlyrMemCache * glyr_download(char * url, GlyrQuery * s)
+    GlyrMemCache * glyr_download(char * url, GlyrQuery * s) nogil
 
 
 cdef extern from "glyr/cache.h":
@@ -238,22 +238,22 @@ cdef extern from "glyr/cache.h":
 
     GlyrDatabase * glyr_db_init(char * root_path)
     void glyr_db_destroy(GlyrDatabase * db_object)
-    GlyrMemCache * glyr_db_lookup(GlyrDatabase * db, GlyrQuery * query)
-    void glyr_db_insert(GlyrDatabase * db, GlyrQuery * q, GlyrMemCache * cache)
-    int glyr_db_delete(GlyrDatabase * db, GlyrQuery * query)
-    int glyr_db_edit(GlyrDatabase * db, GlyrQuery * query, GlyrMemCache * edited)
-    void glyr_db_replace(GlyrDatabase * db, unsigned char * md5sum, GlyrQuery * query, GlyrMemCache * data)
-    void glyr_db_foreach(GlyrDatabase * db, glyr_foreach_callback cb, void * userptr)
+    GlyrMemCache * glyr_db_lookup(GlyrDatabase * db, GlyrQuery * query) nogil
+    void glyr_db_insert(GlyrDatabase * db, GlyrQuery * q, GlyrMemCache * cache) nogil
+    int glyr_db_delete(GlyrDatabase * db, GlyrQuery * query) nogil
+    int glyr_db_edit(GlyrDatabase * db, GlyrQuery * query, GlyrMemCache * edited) nogil
+    void glyr_db_replace(GlyrDatabase * db, unsigned char * md5sum, GlyrQuery * query, GlyrMemCache * data) nogil
+    void glyr_db_foreach(GlyrDatabase * db, glyr_foreach_callback cb, void * userptr) nogil
     GlyrMemCache * glyr_db_make_dummy()
 
 
 cdef extern from "glyr/misc.h":
-    size_t glyr_levenshtein_strcmp(char * string, char * other)
-    size_t glyr_levenshtein_strnormcmp(char * string, char * other)
+    size_t glyr_levenshtein_strcmp(char * string, char * other) nogil
+    size_t glyr_levenshtein_strnormcmp(char * string, char * other) nogil
 
 cdef extern from "glyr/testing.h":
-    char * glyr_testing_call_url(char * provider_name, GLYR_GET_TYPE type, GlyrQuery * query)
-    GlyrMemCache * glyr_testing_call_parser(char * provider_name, GLYR_GET_TYPE type, GlyrQuery * query, GlyrMemCache * cache)
+    char * glyr_testing_call_url(char * provider_name, GLYR_GET_TYPE type, GlyrQuery * query) nogil
+    GlyrMemCache * glyr_testing_call_parser(char * provider_name, GLYR_GET_TYPE type, GlyrQuery * query, GlyrMemCache * cache) nogil
 
 cdef extern from "glyr/config.h":
     enum:

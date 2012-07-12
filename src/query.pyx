@@ -6,12 +6,23 @@ include "cache.pyx"
 
 # This is a proxy callback that reads a PyObject from
 # a user_pointer and calls it
-cdef int _actual_callback(C.GlyrMemCache * c, C.GlyrQuery * q):
+# This function is called from C code
+cdef int _actual_callback(C.GlyrMemCache * c, C.GlyrQuery * q) with gil:
     'Proxy callback, calling set callable object, and returning rc to C-Side'
+
     py_callback = <object>q.callback.user_pointer
     pyq = query_from_pointer(q)
     pyc = cache_from_pointer(c)
-    return py_callback(pyc, pyq)
+
+    status = py_callback(pyc, pyq)
+
+    if status == 'post_stop':
+        return C.E_STOP_POST
+    elif status == 'pre_stop':
+        return C.E_STOP_PRE
+    else:
+        return C.E_OK
+
 
 
 cdef query_from_pointer(C.GlyrQuery * query):
@@ -39,12 +50,14 @@ cdef class Query:
     # Actual underlying Query
     cdef C.GlyrQuery _cq
     cdef C.GlyrQuery * _cqp
+    cdef Database _db_prop
 
     # Allocation on C-Side
     def __cinit__(self, new_query=True, **kwargs):
         if new_query:
             C.glyr_query_init(&self._cq)
             self._cqp = &self._cq
+            self._db_prop = None
 
             for key, value in kwargs.items():
                 Query.__dict__[key].__set__(self, value)
@@ -69,6 +82,7 @@ cdef class Query:
 
           print(list(plyr.PROVIDER.keys()))
 
+        :get_type_value: Any of the above strings, may do nothing with a bad type!
         """
         def __set__(self, value):
             if type(value) is str:
@@ -82,14 +96,22 @@ cdef class Query:
             return _stringify(<char*>C.glyr_get_type_to_string(self._ptr().type))
 
     property number:
-        'The number of items you want to retrieve, 0 for infinite, by default 1'
+        """
+        The number of items you want to retrieve, 0 for infinite, by default 1
+
+        :number: Any number, < 0 will be clamped to 0.
+        """
         def __set__(self, int number):
             C.glyr_opt_number(self._ptr(), number)
         def __get__(self):
             return self._ptr().number
 
     property max_per_plugins:
-        'How many items a single provider may retrieve (not very useful normally)'
+        """
+        How many items a single provider may retrieve (not very useful normally)
+
+        :max_per_plugins: Any number, < 0 will be clamped to a high number.
+        """
         def __set__(self, int max_per_plugins):
             C.glyr_opt_plugmax(self._ptr(), max_per_plugins)
         def __get__(self):
@@ -104,6 +126,8 @@ cdef class Query:
         2 -> basic info
         3 -> more info
         4 -> very detailed debug messages
+
+        :verbosity: an integer in [0..4]
         """
         def __set__(self, int verbosity):
             C.glyr_opt_verbosity(self._ptr(), verbosity)
@@ -119,7 +143,7 @@ cdef class Query:
         The fuzziness parameter is the maximum distance two strings may have to match. A high distance (like about 10) matches even badly mistyped strings, but also introduces bad results. Low settings however will omit some good results.
         The default values is currently 4. To be more secure some correction is applied:
 
-        Examples:
+        Example:
 
         - artist: Adele - album: 19
         - artist: Adele - album: 21
@@ -151,6 +175,8 @@ cdef class Query:
     property parallel:
         """
         Max parallel downloads handles that glyr may open
+
+        :parallel: A positive integer, do not try 0
         """
         def __set__(self, int parallel):
             C.glyr_opt_parallel(self._ptr(), parallel)
@@ -160,6 +186,8 @@ cdef class Query:
     property timeout:
         """
         Max timeout in seconds to wait before a download handle is canceled.
+
+        :timeout: A timeout in seconds
         """
         def __set__(self, int timeout):
             C.glyr_opt_timeout(self._ptr(), timeout)
@@ -169,6 +197,8 @@ cdef class Query:
     property redirects:
         """
         Max redirects to allow for download handles.
+
+        :redirects: A positive integer, do not try 0
         """
         def __set__(self, int redirects):
             C.glyr_opt_redirects(self._ptr(), redirects)
@@ -178,6 +208,8 @@ cdef class Query:
     property force_utf8:
         """
         For textitems only: try to convert input to utf-8 always, throw away if invalidly encoded.
+
+        :force_utf8: True or False
         """
         def __set__(self, bool force_utf8):
             C.glyr_opt_force_utf8(self._ptr(), force_utf8)
@@ -190,6 +222,8 @@ cdef class Query:
 
         0.0 means best speed, i.e. querying google for covers at first, 1.0 will query the little bit
         slower last.fm, which will deliver almost always HQ items.
+
+        :qsratio: Any number between 0.0 and 1.0, do not except magic improvements.
         """
         def __set__(self, float qsratio):
             C.glyr_opt_qsratio(self._ptr(), qsratio)
@@ -202,6 +236,8 @@ cdef class Query:
 
         If the database property is not set, this option has no effect at all.
         Defaults to True.
+
+        :db_autoread: True or False
         """
         def __set__(self, bool db_autoread):
             C.glyr_opt_db_autoread(self._ptr(), db_autoread)
@@ -213,6 +249,8 @@ cdef class Query:
         Auto-write downloaded items to database. Defaults to True.
 
         If the database property is not set, this option has no effect at all.
+
+        :db_autowrite: True or False
         """
         def __set__(self, bool db_autowrite):
             C.glyr_opt_db_autowrite(self._ptr(), db_autowrite)
@@ -223,18 +261,19 @@ cdef class Query:
         """
         Set a local database to be used by this query.
 
-        Must be an instance of plyr.Database
+        :database: An instance of plyr.Database
         """
         def __set__(self, Database database):
+            self._db_prop = database
             C.glyr_opt_lookup_db(self._ptr(), database._ptr())
         def __get__(self):
-            db = Database()
-            db._cdb = self._ptr().local_db
-            return db
+            return self._db_prop
 
     property language_aware_only:
         """
-        Only query providers that have localized content.
+        Only query providers that have localized content
+
+        :language_aware_only: True or False
         """
         def __set__(self, bool lang_aware_only):
             C.glyr_opt_lang_aware_only(self._ptr(), lang_aware_only)
@@ -250,6 +289,8 @@ cdef class Query:
         but for example artist biographies are available in different languages.
 
         When lang_aware_only is not set, all other providers are used too.
+
+        :language: Any of "en;de;fr;es;it;jp;pl;pt;ru;sv;tr;zh"
         """
         def __set__(self, language):
             C.glyr_opt_lang(self._ptr(), language)
@@ -260,8 +301,7 @@ cdef class Query:
         """
         If you need to a proxy set, use it here.
 
-        The proxy to use, if any.
-        It is passed in the form: [protocol://][user:pass@]yourproxy.domain[:port]
+        :proxy_string: Passed in the form: [protocol://][user:pass@]yourproxy.domain[:port]
         """
         def __set__(self, proxy):
             C.glyr_opt_proxy(self._ptr(), proxy)
@@ -269,6 +309,11 @@ cdef class Query:
             return self._ptr().proxy
 
     property artist:
+        """
+        Set the artist to search for.
+
+        :artist: Any valid string.
+        """
         def __set__(self, value):
             byte_value = _bytify(value)
             C.glyr_opt_artist(self._ptr(), byte_value)
@@ -276,6 +321,11 @@ cdef class Query:
             return _stringify(self._ptr().artist)
 
     property album:
+        """
+        Set the album to search for.
+
+        :album: Any valid string.
+        """
         def __set__(self, value):
             byte_value = _bytify(value)
             C.glyr_opt_album(self._ptr(), byte_value)
@@ -283,6 +333,11 @@ cdef class Query:
             return _stringify(self._ptr().album)
 
     property title:
+        """
+        Set the title to search for.
+
+        :title: Any valid string.
+        """
         def __set__(self, value):
             byte_value = _bytify(value)
             C.glyr_opt_title(self._ptr(), byte_value)
@@ -290,6 +345,22 @@ cdef class Query:
             return _stringify(self._ptr().title)
 
     property providers:
+        """
+        Pass a list of provider names to forbid glyr to search other providers.
+
+        'all' can be used to enable all providers,
+        other providers can be prepended with a '-' to exclude them from the list,
+
+        To find out providernames programmatically use the PROVIDERS dict.
+
+        Examples: ::
+
+            ['lastfm', 'google']
+            ['all', '-lastfm']
+
+
+        See also: http://sahib.github.com/glyr/doc/html/libglyr-Glyr.html#glyr-opt-from
+        """
         def __set__(self, value_list):
             provider_string = _bytify(';'.join(value_list))
             C.glyr_opt_from(self._ptr(), provider_string)
@@ -297,6 +368,25 @@ cdef class Query:
             return _stringify(self._ptr().providers).split(';')
 
     property callback:
+        """
+        Set a function that is called when an item is readily downloaded.
+
+        The function must take two arguments: ::
+
+            def funny_smelling_callback(cache, query):
+                # query is the Query you used to search this.
+                # cache is the actual item.
+
+                # One may return:
+                #  - 'ok'        -> continue search
+                #  - 'post_stop' -> append item to results, and stop
+                #  - 'pre_stop'  -> stop immediately, return all results before
+                #
+                # Returning nothing is the same as 'ok'
+                return 'ok'
+
+        :py_func: a method, function or any object that implements __call__()
+        """
         # Save callable object as user_pointer
         # just cast it back if you do __get__
         def __set__(self, object py_func):
@@ -305,6 +395,15 @@ cdef class Query:
             return <object>self._ptr().callback.user_pointer
 
     property allowed_formats:
+        """
+        For image-fetchers only: limit image formats to a list of formats.
+
+        Default: ::
+
+          ['png', 'jpg', 'gif', 'jpeg']
+
+        :allowed_formats: a list of image format endings
+        """
         def __set__(self,  allowed_formats):
             allowed_list = _bytify(';'.join(allowed_formats))
             C.glyr_opt_allowed_formats(self._ptr(), allowed_list)
@@ -312,16 +411,44 @@ cdef class Query:
             return _stringify(self._ptr().allowed_formats).split(';')
 
     property useragent:
+        """
+        Set a certain user-agent on your own
+
+        Note: Some providers like discogs need a proper useragent set.
+        Use with care therefore.
+
+        :useragent: A string like "libglyr/0.9.9 (Catholic Cat) +https://www.github.com/sahib/glyr"
+        """
         def __set__(self,  useragent):
             C.glyr_opt_useragent(self._ptr(), useragent)
         def __get__(self):
             return self._ptr().useragent
 
     property musictree_path:
+        """
+        Set the path to a audiofile, where a folder.jpg or similar may be near.
+
+        libglyr supports searching through the filesystem beginning with a certain file,
+        or a directory containing e.g. folder.jpeg and some audio files.
+
+        See a more detailed description here:
+        http://sahib.github.com/glyr/doc/html/libglyr-Glyr.html#glyr-opt-musictree-path
+
+        :musictree_path: Something like ~/HD/Musik/DevilDriver/Beast/BlackSoulChoir.mp3
+        """
         def __set__(self,  musictree_path):
             C.glyr_opt_musictree_path(self._ptr(), musictree_path)
         def __get__(self):
             return self._ptr().musictree_path
+
+    property do_download:
+        """
+        Download images or just return links to them?
+        """
+        def __set__(self, bool do_download):
+            C.glyr_opt_download(self._ptr() , do_download)
+        def __get__(self):
+            return self._ptr().download
 
     ###########################################################################
     #                              other methods                              #
@@ -335,7 +462,10 @@ cdef class Query:
         :returns: a list of byteblobs or [] on error,
                   use error to find out what happened.
         """
-        item_list = C.glyr_get(self._ptr(), NULL, NULL)
+        self_ptr = self._ptr()
+        with nogil:
+            item_list = C.glyr_get(self_ptr, NULL, NULL)
+
         return cache_list_from_pointer(item_list)
 
     def cancel(self):

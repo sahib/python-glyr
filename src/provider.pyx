@@ -5,20 +5,26 @@ Here are no functions, classes, docstrings,
 Just the Provider dictionary, looking like that:
 
    'albumlist': {
-               'optional' : ('artist', 'album', 'title'),
-               'required' : ('artist', 'album'),
-               'provider' : {
+               'optional' : ('album', 'title'),
+               'required' : ('artist'),
+               'provider' : [{
                       'key'     : 'm',
                       'name'    : 'musicbrainz',
                       'quality' : 95,
                       'speed'   : 95
-               } # next getter
+               },
+               {
+                      ... next provider..
+               }]
+   },
+   'lyrics': {
+        ... next fetcher ...
    }
 
 Note: This dictionary gets auto-generated on import
 """
 
-PROVIDER = {}
+PROVIDERS = {}
 
 # Build a dictionary structure of providers
 cdef C.GlyrFetcherInfo * _head = C.glyr_info_get()
@@ -50,16 +56,17 @@ cdef make_optional_tuple(C.GLYR_FIELD_REQUIREMENT reqs):
 while _node is not NULL:
     _str_name = _stringify(_node.name)
     _source = _node.head
-    PROVIDER[_str_name] = {}
-    PROVIDER[_str_name]['optional'] = make_optional_tuple(_node.reqs)
-    PROVIDER[_str_name]['required'] = make_requirement_tuple(_node.reqs)
+    PROVIDERS[_str_name] = {}
+    PROVIDERS[_str_name]['optional'] = make_optional_tuple(_node.reqs)
+    PROVIDERS[_str_name]['required'] = make_requirement_tuple(_node.reqs)
+    PROVIDERS[_str_name]['providers'] = []
     while _source is not NULL:
-        PROVIDER[_str_name]['provider'] = {
+        PROVIDERS[_str_name]['providers'].append({
                 'name'   : _stringify(_source.name),
                 'key'    : chr(_source.key),
                 'quality': _source.quality,
                 'speed'  : _source.speed,
-        }
+        })
         _source = _source.next
     _node = _node.next
 

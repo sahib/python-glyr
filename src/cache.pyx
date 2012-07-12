@@ -87,7 +87,7 @@ cdef class Cache:
     ###########################################################################
 
     property duration:
-        'Duration in seconds, only filled for "tracklist", otherwise 0'
+        'Duration in seconds, only filled for "tracklist", otherwise 0.'
         def __set__(self,  duration):
             self._ptr().duration = duration
         def __get__(self):
@@ -113,13 +113,18 @@ cdef class Cache:
             return self._ptr().rating
 
     property is_image:
-        'A boolean. Set to true if this item contains image data'
+        'A boolean. Set to true if this item contains image data.'
         # You really should not set this
         def __get__(self):
             return self._ptr().is_image
 
     property image_format:
-        'The format of the image, might be [png, jpeg, gif, tiff]'
+        """
+        The format of the image, might be one of: ::
+
+            [png, jpeg, gif, tiff]
+
+        """
         def __set__(self,  image_format):
             byte_image_format = _bytify(image_format)
             C.glyr_cache_set_img_format(self._ptr(), byte_image_format)
@@ -151,7 +156,7 @@ cdef class Cache:
             return _stringify(<char*>C.glyr_data_type_to_string(self._ptr().data_type))
 
     property data:
-        'Actual data as bytestring'
+        'Actual data as bytestring. Also settable.'
         def __set__(self, data):
             C.glyr_cache_set_data(self._ptr(), data, len(data))
         def __get__(self):
@@ -161,12 +166,18 @@ cdef class Cache:
                 return b''
 
     property size:
-        'Size in bytes of data - this is not useful in Python'
+        """
+        Size in bytes of data - this is not useful in Python, as you could do also: ::
+
+            len(mycache.data)
+
+        This attribute is not settable, since you could screw things up.
+        """
         def __get__(self):
             return self._ptr().size
 
     property source_url:
-        'The URL where this items was retrieved from'
+        'The URL where this items was retrieved from.'
         def __set__(self,  dsrc):
             byte_dsrc = _bytify(dsrc)
             C.glyr_cache_set_dsrc(self._ptr(), byte_dsrc)
@@ -174,7 +185,7 @@ cdef class Cache:
             return _stringify(self._ptr().dsrc)
 
     property provider:
-        'The name of the provider where this items was retrieved from'
+        'The name of the provider where this items was retrieved from.'
         def __set__(self,  prov):
             byte_prov = _stringify(prov)
             C.glyr_cache_set_prov(self._ptr(), byte_prov)
@@ -189,7 +200,7 @@ cdef class Cache:
             return self._ptr().cached
 
     property timestamp:
-        'If is_cached is True, a timestamp of the insertion sec.ms, otherwise 0'
+        'If is_cached is True, a timestamp of the insertion sec.ms, otherwise 0.'
         def __set__(self,  timestamp):
             self._ptr().timestamp = timestamp
         def __get__(self):

@@ -6,9 +6,12 @@ A minimal Example
 
 Whenever you want to retrieve some metadata you use a Query: ::
 
+    # one import for everything
+    import plyr
+
     # A query understands lots of options, they can be either passed
     # on __init__ as keywords, or can be set afterwards as properties
-    qry = Query(artist='Tenacious D', title='Deth Starr', get_type='lyrics')
+    qry = plyr.Query(artist='Tenacious D', title='Deth Starr', get_type='lyrics')
 
     # Once a query is readily configured you can commit it
     # (you can even commit it more than once)
@@ -27,8 +30,8 @@ Accessing Default Values
 Default Values for any option can be accessed by instantiating an empty Query,
 and using the provided properties.
 
-Reference
----------
+Property Reference
+------------------
 
 .. autoclass:: plyr.Query
    :members:

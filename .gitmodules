@@ -1,0 +1,6 @@
+[submodule "docs/_themes/armstrong"]
+	path = docs/_themes/armstrong
+	url = git://github.com/armstrong/armstrong_sphinx
+[submodule "docs/build/html"]
+	path = docs/build/html
+	url = git://github.com/sahib/python-glyr
