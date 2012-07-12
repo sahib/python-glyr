@@ -8,7 +8,7 @@
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
     
 
-    <title>Building Queries &mdash; python-glyr 0.1 documentation</title>
+    <title>Building Queries &mdash; python-glyr 0.9.9beta documentation</title>
 
 <meta name="viewport" content="width=device-width; initial-scale=1.0; maximum-scale=1.0; user-scalable=0;"/>
 
@@ -20,7 +20,7 @@
     <script type="text/javascript">
       var DOCUMENTATION_OPTIONS = {
         URL_ROOT:    '',
-        VERSION:     '0.1',
+        VERSION:     '0.9.9beta',
         COLLAPSE_INDEX: false,
         FILE_SUFFIX: '.html',
         HAS_SOURCE:  true
@@ -30,7 +30,7 @@
     <script type="text/javascript" src="_static/underscore.js"></script>
     <script type="text/javascript" src="_static/doctools.js"></script>
     <script type="text/javascript" src="_static/searchtools.js"></script>
-    <link rel="top" title="python-glyr 0.1 documentation" href="index.html" />
+    <link rel="top" title="python-glyr 0.9.9beta documentation" href="index.html" />
     <link rel="next" title="Retrieved Items (aka ,,Caches’‘)" href="cache.html" />
     <link rel="prev" title="Salve te Wanderer!" href="intro.html" /> 
   </head>
@@ -47,7 +47,7 @@
         <li class="right" >
           <a href="intro.html" title="Salve te Wanderer!"
              accesskey="P">previous</a> |</li>
-        <li><a href="index.html">python-glyr 0.1 documentation</a> &raquo;</li> 
+        <li><a href="index.html">python-glyr 0.9.9beta documentation</a> &raquo;</li> 
       </ul>
     </div>  
 
@@ -154,7 +154,14 @@ or returning a value other than 0 from the callback.</p>
 <div class="highlight-python"><div class="highlight"><pre><span class="k">def</span> <span class="nf">funny_smelling_callback</span><span class="p">(</span><span class="n">cache</span><span class="p">,</span> <span class="n">query</span><span class="p">):</span>
     <span class="c"># query is the Query you used to search this.</span>
     <span class="c"># cache is the actual item.</span>
-    <span class="k">pass</span>
+
+    <span class="c"># One may return:</span>
+    <span class="c">#  - &#39;ok&#39;        -&gt; continue search</span>
+    <span class="c">#  - &#39;post_stop&#39; -&gt; append item to results, and stop</span>
+    <span class="c">#  - &#39;pre_stop&#39;  -&gt; stop immediately, return all results before</span>
+    <span class="c">#</span>
+    <span class="c"># Returning nothing is the same as &#39;ok&#39;</span>
+    <span class="k">return</span> <span class="s">&#39;ok&#39;</span>
 </pre></div>
 </div>
 <table class="docutils field-list" frame="void" rules="none">
@@ -601,7 +608,7 @@ Use with care therefore.</p>
         <li class="right" >
           <a href="intro.html" title="Salve te Wanderer!"
              >previous</a> |</li>
-        <li><a href="index.html">python-glyr 0.1 documentation</a> &raquo;</li> 
+        <li><a href="index.html">python-glyr 0.9.9beta documentation</a> &raquo;</li> 
       </ul>
     </div>
 <div class="footer">
