@@ -1,0 +1,1623 @@
+Cell Attributes
+---------------
+
+Cell attributes are descriptors used to implement cell-based attributes.  They
+are created using a name::
+
+    >>> from peak.events import trellis, activity
+    >>> from peak.events.trellis import Cell, CellAttribute
+
+    >>> CellAttribute(__name__='C')
+    CellAttribute('C')
+
+When used as descriptors in a class, they read or write the ``.value``
+attribute of the corresponding cell in the object's ``__cells__`` dictionary::
+
+    >>> class Converter(object):
+    ...     C = CellAttribute(__name__='C')
+    ...     F = CellAttribute(__name__='F')
+    ...     def __init__(self):
+    ...         self.__cells__ = dict(
+    ...             F = Cell(lambda: self.C * 1.8 + 32, 32),
+    ...             C = Cell(lambda: (self.F - 32)/1.8, 0),
+    ...         )
+
+    >>> Converter.C
+    CellAttribute('C')
+
+    >>> tc = Converter()
+    >>> tc.C
+    0.0
+    >>> tc.F
+    32.0
+
+    >>> tc.C = 100
+    >>> tc.F
+    212.0
+
+Setting a CellAttribute-mediated attribute to a ``Cell`` instance, replaces
+that instance in the ``__cells__`` dictionary::
+
+    >>> tc.F = Cell(lambda: -tc.C)
+    >>> tc.F
+    -100
+
+Getting or setting a cell attribute that has no cell in the object's
+``__cells__`` invokes its ``make_cell()`` method to create a cell::
+
+    >>> def demo_factory(typ, ob, name):
+    ...     print "Creating", name, "cell for", typ, "instance"
+    ...     return Cell(lambda: ob.C*2, 0)
+
+    >>> Converter.F.make_cell = demo_factory
+    >>> del tc.__cells__['F']
+    >>> tc.F
+    Creating F cell for <class 'Converter'> instance
+    200
+    >>> tc.F = 42
+
+    >>> del tc.__cells__['F']
+    >>> tc.F = 27
+    Creating F cell for <class 'Converter'> instance
+    >>> tc.F
+    27
+
+    >>> tc.F = Cell(lambda: -tc.C)
+    >>> tc.F
+    -100
+
+And cell attributes are of course inherited by subclasses::
+
+    >>> class Converter2(Converter):
+    ...     pass
+    >>> tc2 = Converter2()
+    >>> del tc2.__cells__['F']
+    >>> tc2.F = -40
+    Creating F cell for <class 'Converter2'> instance
+    >>> tc2.F
+    -40
+
+
+TodoProperty
+------------
+
+TodoProperty objects are like CellAttribute, but offer an extra ``future``
+attribute::
+
+    >>> from peak.events.trellis import TodoProperty
+
+    >>> class X(object):
+    ...     x = TodoProperty(__name__='x')
+    ...     future_x = x.future
+    >>> help(X)
+    Help on class X in module __builtin__:
+    <BLANKLINE>
+    class X(object)
+     |  ...
+     |  future_x
+     |      The future value of the 'x' attribute...
+     |  x...
+     |      Property representing a ``todo`` attribute
+    <BLANKLINE>
+
+
+Class Metadata
+--------------
+
+    >>> from peak.events.trellis import IsOptional, NO_VALUE, CellFactories
+    >>> from peak.events.trellis import *
+
+    >>> class Test(trellis.Component):
+    ...     x = compute(lambda self: 27)
+    ...     attrs(y = 42)
+
+    >>> Test.x.rule
+    <function ... at ...>
+
+    >>> print Test.y.rule
+    None
+
+    >>> Test.y.value
+    42
+
+    >>> Test.x.value
+    NO_VALUE
+
+    >>> CellFactories(Test)
+    {'y': <bound method CellAttribute.make_cell of CellAttribute('y')>,
+     'x': <bound method CellAttribute.make_cell of CellAttribute('x')>}
+
+    >>> Test.x
+    CellAttribute('x')
+
+    >>> Test.y
+    CellAttribute('y')
+
+    >>> Test.y.make_cell(Test, Test(), 'y')
+    Value(42)
+
+    >>> t = Test()
+    >>> t.__cells__ = {}
+
+    >>> t.x
+    27
+
+    >>> t.__cells__['x']
+    Constant(27)
+
+
+IsOptional defaults to false for any attribute that has an explicit setting
+defined in a given class in any other registry besides themselves::
+
+    >>> IsOptional(Test)
+    {'y': False, 'x': True}
+
+    >>> Test.x.discrete
+    False
+
+    >>> Test.y.discrete
+    False
+
+The default factory handles sentinel values by not passing them to the Cell
+constructor::
+
+    >>> Test.x.rule = None
+    >>> Test.x.value = NO_VALUE
+    >>> Test.x.factory = Cell
+    >>> Test.x.make_cell(Test, Test(), 'x')
+    Value(None)
+
+And it binds non-None rules to the instance::
+
+    >>> Test.x.rule = lambda self: 42
+    >>> Test.x.initial_value(Test())
+    >>> Test.x.make_cell(Test, Test(), 'x')
+    Cell(<bound method Test.<lambda> of <Test object at...>>, None [uninitialized])
+
+And uses the ``.discrete`` attribute to determine discreteness::
+
+    >>> Test.x.rule = None
+    >>> Test.x.discrete = True
+    >>> Test.x.make_cell(Test, Test(), 'x')
+    Value(None, discrete[None])
+
+``TodoProperty`` only uses the rule to create the default value, and always
+creates a rule-free receiver, regardless of the value or receiver flag
+settings::
+
+    >>> Test.x = TodoProperty(__name__='x', rule=lambda self: dict(), value=54)
+    >>> Test.to_x = Test.x.future
+
+    >>> Test.x.make_cell(Test, Test(), 'x')
+    TodoValue(<bound method Test.<lambda> of <Test ...>>, {}, discrete[{}])
+
+    >>> CellFactories(Test)['x'] = Test.x.make_cell
+
+
+future, @modifier, etc.
+-----------------------
+
+    >>> t = Test()
+    >>> t.__cells__ = {}
+
+    >>> def dump(): print "t.x =", t.x
+
+    >>> watcher = Cell(dump)
+    >>> watcher.value
+    t.x = {}
+
+    >>> t.to_x
+    Traceback (most recent call last):
+      ...
+    RuntimeError: future can only be accessed from a @modifier
+
+    >>> def add(key, val):
+    ...     t.to_x[key] = val
+    >>> add = modifier(add)
+
+    >>> add(1, 2)
+    t.x = {1: 2}
+    t.x = {}
+
+    >>> def update(**kw):
+    ...     for k, v in kw.items():
+    ...         add(k, v)
+
+    >>> update(x=1, y=2)
+    t.x = {'y': 2}
+    t.x = {}
+    t.x = {'x': 1}
+    t.x = {}
+
+    >>> update = modifier(update)
+
+    >>> update(x=1, y=2)    # it all happens in one go
+    t.x = {'y': 2, 'x': 1}
+    t.x = {}
+
+
+task_factory
+------------
+
+The task_factory creates a TaskCell::
+
+    >>> from peak.events.activity import task
+    >>> def f(self): yield 1; print "done"
+    >>> t = task(f).make_cell(Test, Test(), 'x')
+    >>> t
+    TaskCell(None)
+    >>> print t.value
+    None
+    >>> activity.EventLoop.flush()  # yield 1
+    >>> activity.EventLoop.flush()  # 'print done'
+    done
+
+
+Decorators
+----------
+
+    >>> from peak.util.decorators import decorate
+
+    >>> class Test(trellis.Component):
+    ...     def aRule(self):
+    ...         return 42
+    ...     r = maintain(aRule)   # trick to exercise auto-name-finding
+    ...     anEvent = attr(resetting_to=-1)
+    ...     optRule = compute(lambda:99)
+    ...     todo = todo(lambda self:{})
+
+    >>> Test.r
+    CellAttribute('aRule')
+
+    >>> Test.todo
+    TodoProperty('todo')
+
+    >>> print Test.anEvent.rule
+    None
+
+    >>> Test.r.rule
+    <function aRule at...>
+
+    >>> Test.anEvent.value
+    -1
+
+    >>> Test.r.value
+    NO_VALUE
+
+    >>> Test.anEvent.discrete
+    True
+    
+    >>> Test.r.discrete
+    False
+
+    >>> CellFactories(Test)
+    {'anEvent': <bound method CellAttribute.make_cell of CellAttribute('anEvent')>,
+     'optRule': <bound method CellAttribute.make_cell of CellAttribute('optRule')>,
+     'r': <bound method CellAttribute.make_cell of CellAttribute('aRule')>,
+     'todo': <bound method TodoProperty.make_cell of TodoProperty('todo')>}
+
+    >>> IsOptional(Test)
+    {'anEvent': False, 'optRule': True, 'r': False, 'todo': False}
+
+
+    >>> class Test(trellis.Component):
+    ...     todos(
+    ...         added   = lambda self:{},
+    ...         removed = lambda self:set()
+    ...     )
+    ...     to_add = added.future
+    ...     to_remove = removed.future
+    ...     activity.task()
+    ...     def task(self): yield None
+
+    >>> CellFactories(Test)
+    {'removed': <bound method TodoProperty.make_cell of TodoProperty('removed')>,
+     'task': <bound method CellAttribute.make_cell of CellAttribute('task')>,
+     'added': <bound method TodoProperty.make_cell of TodoProperty('added')>}
+
+
+    >>> class Test(trellis.Component):
+    ...     trellis.compute.attrs(
+    ...         x = lambda self: self.y
+    ...     )
+    ...     y = trellis.make(dict, writable=True)
+    >>> x=Test()
+    >>> x.x
+    {}
+    >>> trellis.Cells(x)
+    {'y': Value({}),
+     'x': LazyCell(<bound method Test.x of <Test object...>>, {} [inactive])}
+
+    >>> class Test(trellis.Component):
+    ...     trellis.compute.attrs(
+    ...         x = lambda self: self.y
+    ...     )
+    ...     trellis.make.attrs(y = dict)
+    >>> x=Test()
+    >>> x.x
+    {}
+    >>> trellis.Cells(x)
+    {'y': Constant({}), 'x': Constant({})}
+
+
+
+Components
+----------
+
+    >>> def hello(msg):
+    ...     print msg
+
+    >>> class Test(Component):
+    ...     trellis.maintain.attrs(
+    ...         X = lambda self: self.Y + 2
+    ...     )
+    ...     trellis.attrs.resetting_to(Y = 0)
+    ...     Z = trellis.attr(0)
+    ...     def always(self):
+    ...         print "always!"
+    ...     always = maintain(always)
+    ...     def only_on_request(self):
+    ...         print "hello!"
+    ...     only_on_request = compute(only_on_request)
+    ...     A=compute(lambda s:hello("A!"))
+    ...     maintain.attrs(B=lambda s:hello("B!"))
+
+    >>> Test.B.discrete
+    False
+
+    >>> Test.always.discrete
+    False
+
+    >>> Test.X.discrete
+    False
+
+    >>> Test.Y.discrete
+    True
+
+    >>> Test.Z.discrete
+    False
+
+
+Non-optional attributes are activated at creation time, as are the appropriate
+cells::
+
+    >>> t = Test()
+    B!
+    always!
+
+    >>> t.__cells__.keys()
+    ['Y', 'always', 'Z', 'B', 'X']
+
+    >>> t.only_on_request
+    hello!
+
+    >>> t.A
+    A!
+    >>> t.A
+
+    >>> t.X
+    2
+    >>> t.Y = 23
+    >>> t.X
+    2
+    >>> t.Z = 1
+    >>> t.X
+    2
+
+    >>> def show_X():
+    ...     print "X =", t.X
+    >>> show_X = Cell(show_X)
+    >>> show_X.value
+    X = 2
+
+    >>> t.Y = 23
+    X = 25
+    X = 2
+
+    >>> t.__cells__.keys()
+    ['A', 'B', 'always', 'only_on_request', 'Y', 'X', 'Z']
+
+    >>> del show_X
+
+Keyword arguments are accepted by the constructor::
+
+    >>> t = Test(always=Constant(False), B=Constant(0), Z=55)
+    >>> t.Z
+    55
+    >>> t.B
+    0
+    >>> t.always
+    False
+
+But not for undefined attributes::
+
+    >>> t = Test(qqqq=42)
+    Traceback (most recent call last):
+      ...
+    TypeError: Test() has no keyword argument 'qqqq'
+
+
+Creating a component from within a rule should not create a dependency link to
+the rule::
+
+    >>> x = Cell(value=27)
+    >>> class Test(Component):
+    ...     trellis.maintain.attrs(x = lambda self: x.value)
+    >>> def _rule():
+    ...     print "creating"
+    ...     Test()
+    >>> r = Cell(_rule)
+    >>> r.value
+    creating
+    >>> x.value = 99
+
+And initializing a component cell that would ordinarily be read-only, should
+replace it with a constant::
+
+    >>> class Test(Component):
+    ...     trellis.make.attrs(x = lambda self: {})
+    >>> t = Test(x=())
+    >>> t.__cells__['x']
+    Constant(())
+
+    >>> t.x = r
+    Traceback (most recent call last):
+      ...
+    AttributeError: Can't change a constant
+    
+
+A component should not create cells for attributes that are not cell properties
+(e.g., due to override in a subclass)::
+
+    >>> class Test(Component):
+    ...     trellis.maintain()
+    ...     def attr(self):
+    ...         print "computing"
+
+    >>> Test()
+    computing
+    <Test object at ...>
+
+    >>> class Test2(Test):
+    ...     attr = None
+
+    >>> Test2()     # attr should not be initialized
+    <Test2 object at ...>
+
+
+Cell Objects
+------------
+
+get_value/set_value methods::
+
+    >>> c = Cell()
+    >>> print c.get_value()
+    None
+    >>> c.set_value(42)
+    >>> c.value
+    42
+    >>> c1 = Constant(42)
+    >>> c1.get_value()
+    42
+    >>> c1.set_value(99)
+    Traceback (most recent call last):
+      ...
+    AttributeError: 'Constant' object has no attribute 'set_value'
+
+    >>> c1 = Cell(lambda: c.value)
+    >>> c1.get_value()
+    42
+    >>> c1.set_value(99)
+    Traceback (most recent call last):
+      ...
+    AttributeError: 'ReadOnlyCell' object has no attribute 'set_value'
+
+    >>> c.set_value(99)
+    >>> c1.get_value()
+    99
+
+
+Repeating, Polling, Recalc
+--------------------------
+
+    >>> poll()
+    Traceback (most recent call last):
+      ...
+    RuntimeError: poll() must be called from a rule
+
+    >>> repeat()
+    Traceback (most recent call last):
+      ...
+    RuntimeError: repeat() must be called from a rule
+
+
+"Poll" re-invokes a rule on the next recalc of *anything*::
+
+    >>> c2 = Cell(value=99)
+    >>> def count():
+    ...     if poll(): print "calculating"
+    ...     return c.value+1
+
+    >>> c = Cell(count, 0)
+
+    >>> def hello(): print "c =", c.value
+    >>> c1 = Performer(hello)
+    c = calculating
+    1
+    >>> c.value
+    1
+    >>> c.value
+    1
+
+    >>> c2.value = 16
+    calculating
+    c = 2
+
+    >>> c2.value = 7
+    calculating
+    c = 3
+
+    >>> c2.value = 66
+    calculating
+    c = 4
+
+
+At least, until/unless you get rid of the cell::
+
+    >>> c = Cell(value=99)
+    >>> c.value
+    99
+
+Which of course requires that its listeners drop their references first::
+
+    >>> c2.value = 27
+    calculating
+    c = 99
+
+And now the repeated polling of the now-vanished cell stops::
+
+    >>> Cell().value = 66
+    >>> c.value = 20
+    c = 20
+
+
+Discrete Processing
+-------------------
+
+    >>> class LineReceiver(trellis.Component):
+    ...     bytes = trellis.attr(resetting_to='')
+    ...     delimiter = trellis.attr('\r\n')
+    ...     _buffer = ''
+    ...
+    ...     trellis.maintain(resetting_to=None)
+    ...     def line(self):
+    ...         buffer = self._buffer = self._buffer + self.bytes
+    ...         lines = buffer.split(self.delimiter, 1)
+    ...         if len(lines)>1:
+    ...             buffer = self._buffer = lines[1]
+    ...             trellis.repeat()
+    ...             return lines[0]
+    ...
+    ...     trellis.maintain()
+    ...     def dump(self):
+    ...         if self.line is not None:
+    ...             print "Line:", self.line
+
+    >>> LineReceiver.line.discrete
+    True
+
+    >>> lp = LineReceiver()
+    >>> lp.bytes = 'xyz'
+    >>> lp.bytes = '\r'
+    >>> lp.bytes = '\n'
+    Line: xyz
+
+    >>> lp.bytes = "abcdef\r\nghijkl\r\nmnopq"
+    Line: abcdef
+    Line: ghijkl
+
+    >>> lp.bytes = "FOObarFOObazFOOspam\n"
+    >>> lp.delimiter = "FOO"
+    Line: mnopq
+    Line: bar
+    Line: baz
+
+    >>> lp.delimiter = "\n"
+    Line: spam
+
+    >>> lp.bytes = 'abc\nabc\n'
+    Line: abc
+    Line: abc
+
+
+Multitasking
+------------
+
+    >>> def raiser():
+    ...     raise Exception("foo")
+    ...     yield None  # make it a generator
+
+    >>> raiser().next()
+    Traceback (most recent call last):
+      ...
+    Exception: foo
+
+    >>> activity.resume()
+    Traceback (most recent call last):
+      ...
+    RuntimeError: resume() must be called from an @activity.task
+
+    >>> def yielder(ob):
+    ...     while not ob.bytes:
+    ...         print "pausing"
+    ...         yield activity.Pause
+    ...     yield ob.bytes
+
+    >>> def t():
+    ...     yield 1
+    ...     yield 2
+    ...     while 1:
+    ...         yield yielder(lp);
+    ...         print "Got:", activity.resume()
+    ...         yield activity.Pause     # nothing changes unless we pause
+
+    >>> c = activity.TaskCell(t)
+
+
+Dictionaries
+------------
+
+    >>> d = Dict({1:2}, a="b")
+    >>> d
+    {'a': 'b', 1: 2}
+
+    >>> hash(d)
+    Traceback (most recent call last):
+      ...
+    TypeError
+
+    >>> d.pop(1)
+    Traceback (most recent call last):
+      ...
+    InputConflict: Can't read and write in the same operation
+
+    >>> d.popitem()
+    Traceback (most recent call last):
+      ...
+    InputConflict: Can't read and write in the same operation
+
+    >>> d.setdefault(2, 4)
+    Traceback (most recent call last):
+      ...
+    InputConflict: Can't read and write in the same operation
+
+    >>> del d['a']
+    >>> d
+    {1: 2}
+
+    >>> def dump():
+    ...     for name in 'added', 'changed', 'deleted':
+    ...         if getattr(d,name):
+    ...             print name, '=', getattr(d,name)
+    >>> dump = Performer(dump)
+    >>> dump.value
+
+    >>> d[2] = 3
+    added = {2: 3}
+
+    >>> del d[1]
+    deleted = {1: 2}
+
+    >>> del d[42]
+    Traceback (most recent call last):
+      ...
+    KeyError: 42
+
+    >>> d[2] = "blue"
+    changed = {2: 'blue'}
+
+    >>> d.clear()
+    deleted = {2: 'blue'}
+
+    >>> d.update({1:2}, blue=2)
+    added = {'blue': 2, 1: 2}
+
+    >>> d.update({3:4})
+    added = {3: 4}
+
+    >>> d.update(blue='shoe')
+    changed = {'blue': 'shoe'}
+
+    >>> def go(): d[99] = 42; del d[99]
+    >>> modifier(go)()
+
+    >>> def go(): d[99] = 42; d[99] = 26
+    >>> modifier(go)()
+    added = {99: 26}
+
+    >>> def go(): del d[99]; d[99] = 42
+    >>> modifier(go)()
+    changed = {99: 42}
+
+    >>> def go(): d[99] = 71; del d[99]
+    >>> modifier(go)()
+    deleted = {99: 42}
+
+    >>> def go(): d[99] = 71; d[1] = 23; d.clear(); d.update({1:3}, a='b')
+    >>> modifier(go)()
+    added = {'a': 'b'}
+    changed = {1: 3}
+    deleted = {'blue': 'shoe', 3: 4}
+
+
+Lists
+-----
+
+    >>> L = List("abc")
+    >>> L
+    ['a', 'b', 'c']
+
+    >>> def dump():
+    ...     if L.changed:
+    ...         print "changed to", L
+    >>> dump = Performer(dump)
+    >>> dump.value
+
+    >>> hash(L)
+    Traceback (most recent call last):
+      ...
+    TypeError
+
+    >>> L.pop()
+    Traceback (most recent call last):
+      ...
+    InputConflict: Can't read and write in the same operation
+
+    >>> L.pop(0)
+    Traceback (most recent call last):
+      ...
+    InputConflict: Can't read and write in the same operation
+
+    >>> L.append(23)
+    changed to ['a', 'b', 'c', 23]
+
+    >>> L[1:2] = [3]
+    changed to ['a', 3, 'c', 23]
+
+    >>> del L[:3]
+    changed to [23]
+
+    >>> L[0] = 42
+    changed to [42]
+
+    >>> del L[0]
+    changed to []
+
+    >>> L += [1, 2]
+    changed to [1, 2]
+
+    >>> L *= 3
+    changed to [1, 2, 1, 2, 1, 2]
+
+    >>> del L[2:]
+    changed to [1, 2]
+
+    >>> L.reverse()
+    changed to [2, 1]
+
+    >>> L.remove(2)
+    changed to [1]
+
+    >>> L.insert(0, 88)
+    changed to [88, 1]
+
+    >>> L.extend( (423, -99) )
+    changed to [88, 1, 423, -99]
+
+    >>> L.sort()
+    changed to [-99, 1, 88, 423]
+
+
+Sets
+----
+
+    >>> try:
+    ...     s = set
+    ... except NameError:
+    ...     from sets import Set as set
+
+    >>> s = Set('abc')
+    >>> s
+    Set(['a', 'c', 'b'])
+
+    >>> hash(s)
+    Traceback (most recent call last):
+      ...
+    TypeError: Can't hash a Set, only an ImmutableSet.
+
+    >>> s.pop()
+    Traceback (most recent call last):
+      ...
+    InputConflict: Can't read and write in the same operation
+
+    >>> def dump():
+    ...     for name in 'added', 'removed':
+    ...         if getattr(s, name):
+    ...             print name, '=', list(getattr(s,name))
+    >>> dump = Performer(dump)
+    >>> dump.value
+
+    >>> s.clear()
+    removed = ['a', 'c', 'b']
+
+    >>> s.add(1)
+    added = [1]
+
+    >>> s.remove(1)
+    removed = [1]
+
+    >>> s.remove(2)
+    Traceback (most recent call last):
+      ...
+    KeyError: 2
+
+    >>> s.symmetric_difference_update((1,2))
+    added = [1, 2]
+
+    >>> s.difference_update((2,3))
+    removed = [2]
+
+    >>> def go(): s.add(3); s.remove(3)
+    >>> modifier(go)()
+
+    >>> def go(): s.remove(1); s.add(1)
+    >>> modifier(go)()
+
+    >>> def go(): s.add(3); s.clear()
+    >>> modifier(go)()
+    removed = [1]
+
+    >>> def go(): ss=s; ss |= set([1,2]); ss &= set([2,3])
+    >>> modifier(go)()
+    added = [2]
+
+    >>> def go(): ss=s; s.remove(2); ss |= set([2, 3])
+    >>> modifier(go)()
+    added = [3]
+
+    >>> def go(): ss=s; ss |= set([4]); ss -= set([4, 2])
+    >>> modifier(go)()
+    removed = [2]
+
+    >>> s
+    Set([3])
+
+    >>> def go(): ss=s; s.remove(3); s.add(4); ss ^= set([3, 4])
+    >>> modifier(go)()
+
+    >>> s
+    Set([3])
+
+
+
+Cell and Component Initialization
+---------------------------------
+
+This bit tests whether a rule gets to fire when a cell's value is initialized.
+When you set a ruled cell's value before computing its value, the "old" value
+should be the passed-in value, and the "new" value should be the assigned
+value (overriding the rule)::
+
+    >>> def aRule():
+    ...     print "running", c.value
+    ...     return 42
+
+    >>> c = Cell(aRule, 96)
+    >>> c.value = 27
+    running 27
+    >>> c.value
+    27
+
+And if the setting occurs in a modifier or action rule, the rule's execution
+should be deferred until the current calculation/rule is complete, thereby
+allowing several cells to be simultaneously pre-set and initialized at once::
+
+    >>> c = trellis.Cell(aRule, 96)
+    >>> def go():
+    ...     c.value = 27
+    ...     print "finished setting"
+    >>> trellis.modifier(go)()
+    finished setting
+    running 27
+    >>> c.value
+    27
+
+
+Observers::
+
+    >>> v = trellis.Value(26)
+    >>> def o():
+    ...     print "value is", v.value
+    >>> o = trellis.Performer(o)
+    value is 26
+    >>> v.value = 27
+    value is 27
+
+    >>> o.layer
+    Max
+
+    >>> def fail():
+    ...     v.value = 99
+
+    >>> trellis.Performer(fail)
+    Traceback (most recent call last):
+      ...
+    RuntimeError: Can't change objects during @perform or @compute
+
+
+Pentagram of Death
+------------------
+
+The infamous "Pentagram of Death" problem is described as follows:
+
+"""If X is an input cell, and A and B and H depend on it, and C depends on B, 
+and A depends on C, and H depends on A and C, then most algorithms will 
+fail to handle a situation where H is recalculated before C knows it's out 
+of date."""
+
+Let's try it.  Note that the order of values in the lambda expressions is
+intended to force the dependencies to be resolved in an order that ensures H
+gets told that X has changed before C does, and that C has to find out whether
+B has changed before it is allowed to be recalculated::
+
+    >>> def recalc(name):
+    ...     print "calculating", name
+
+    >>> X = trellis.Cell(value=1)
+    >>> A = trellis.Cell(lambda: recalc("A") or (X.value, C.value))
+    >>> B = trellis.Cell(lambda: recalc("B") or  X.value)
+    >>> C = trellis.Cell(lambda: recalc("C") or (B.value, X.value))
+    >>> H = trellis.Cell(lambda: recalc("H") or (X.value, C.value))
+
+We'll calculate H first, so it will be X's first listener::
+
+    >>> H.value
+    calculating H
+    calculating C
+    calculating B
+    (1, (1, 1))
+
+And then A, so it'll be the last listener::
+
+    >>> A.value
+    calculating A
+    (1, (1, 1))
+
+At this point, the layers of all the cells are known::
+
+    >>> X.layer
+    0
+    >>> B.layer
+    1
+    >>> C.layer
+    2
+    >>> A.layer
+    3
+    >>> H.layer
+    3
+
+X is at layer zero because it doesn't depend on anything.  B depends only on X,
+and C depends on both X and B (so it's a higher layer).  A depends on X and C,
+so it's higher than C, and H is the same.
+
+So now, if we change X, everyone should update in the correct order::
+
+    >>> X.value = 2
+    calculating B
+    calculating C
+    calculating A
+    calculating H
+
+    >>> H.value
+    (2, (2, 2))
+
+If this had been a shoddy algorithm, then ``H.value`` would have been
+``(2, (1, 1))`` instead, and the update order might have been different.  Note
+by the way that B is calculated before C, because C depends on B as its first
+dependency.  So it has to look "up" the dependency graph to see if B or X have
+changed before C's rule can be run.  Since B is first in C's dependency order,
+it gets recalculated first.
+
+(Similarly, H gets recalculated before C, because its first dependency is X,
+so it immediately realizes it needs to recalculate.  X also notifies H first
+that a recalculation might be necessary.)
+
+
+Demos
+-----
+
+Circular calculations::
+
+    >>> F = Cell(lambda: C.value*1.8 + 32, 32)
+    >>> C = Cell(lambda: (F.value-32)/1.8, 0)
+    >>> F.value
+    32.0
+    >>> C.value
+    0.0
+    >>> F.value = 212
+    >>> C.value
+    100.0
+    >>> C.value = 0
+    >>> F.value
+    32.0
+    >>> C.value = -40
+    >>> F.value
+    -40.0
+
+    >>> def temp():
+    ...     if C.value<10:
+    ...         print "Brrrrr!"
+    >>> temp = Cell(temp)
+    >>> temp.value
+    Brrrrr!
+
+    >>> F.value = 212
+    >>> C.value
+    100.0
+    >>> F.value = 0
+    Brrrrr!
+    >>> C.value = 9
+    Brrrrr!
+    >>> F.value = 30
+    Brrrrr!    
+
+    >>> del temp
+
+Spreadsheet simulation::
+
+    >>> from UserDict import DictMixin, UserDict
+    >>> import sys
+    >>> class Spreadsheet(DictMixin, UserDict):
+    ...     def __init__(self, *args, **kw):
+    ...         self.data = {}
+    ...         for arg in args+(kw,): self.update(arg)
+    ...
+    ...     def __getitem__(self, key):
+    ...         return self.data[key][1].value
+    ...
+    ...     def __setitem__(self, key, value):
+    ...         def rule():
+    ...             value = self.data[key][0].value
+    ...             print "computing", value
+    ...             if sys.version>="2.4":
+    ...                 return eval(value, globals(), self)
+    ...             code = compile(value, '<string>', 'eval')
+    ...             d = dict([(k,self[k]) for k in code.co_names if k in self.data])
+    ...             return eval(code, globals(), d)
+    ...         if key in self.data:
+    ...             self.data[key][0].value = value
+    ...         else:
+    ...             self.data[key] = Cell(value=value), Cell(rule, None)
+
+    >>> ss = Spreadsheet()
+    >>> ss['a1'] ='5'
+    >>> ss['a2']='2*a1'
+    >>> ss['a3']='2*a2'
+    
+    >>> ss['a1']
+    computing 5
+    5
+    >>> ss['a2']
+    computing 2*a1
+    10
+
+    >>> ss['a1'] = '7'
+    computing 7
+    computing 2*a1
+
+    >>> ss['a1']
+    7
+    >>> ss['a2']
+    14
+    >>> ss['a3']
+    computing 2*a2
+    28
+
+    >>> ss['a1'] = '3'
+    computing 3
+    computing 2*a1
+    computing 2*a2
+
+Events::
+
+    >>> def last_ping():
+    ...     if ping.value is not None:
+    ...         print "ping", ping.value
+    ...         return ping.value
+    ...     return last_ping.value
+
+    >>> last_ping = Cell(last_ping)
+    >>> ping = Cell(discrete=True)
+
+    >>> print last_ping.value
+    None
+
+    >>> ping.value = 1
+    ping 1
+    >>> last_ping.value
+    1
+
+    >>> F.value = 27
+    >>> print ping.value    # value goes away as soon as something changes
+    None
+    >>> last_ping.value
+    1
+
+    >>> ping.value = 2     
+    ping 2
+    >>> last_ping.value
+    2
+    >>> ping.value = 2      # deps are recalculated even if value is same
+    ping 2
+
+    >>> F.value = 99
+    >>> print ping.value
+    None
+    >>> last_ping.value
+    2
+
+    
+Dynamic dependencies::
+
+    >>> def C_rule():
+    ...     print "computing",
+    ...     if A.value<5:
+    ...         print A.value, B.value
+    ...     else:
+    ...         print "...done"
+
+    >>> A = Cell(value=1)
+    >>> B = Cell(value=2)
+    >>> C = Cell(C_rule)
+
+    >>> C.value
+    computing 1 2
+    >>> C.value
+
+    >>> A.value = 3
+    computing 3 2
+
+    >>> B.value = 4
+    computing 3 4
+
+    >>> A.value = 5
+    computing ...done
+
+    >>> B.value = 6     # nothing happens, since C no longer depends on B
+    >>> A.value = 3
+    computing 3 6
+
+    >>> B.value = 7     # but now it's back depending on B again.
+    computing 3 7
+
+    >>> B.value = 7
+    >>> A.value = 1
+    computing 1 7
+
+    >>> A.value = 1
+
+
+Forcing a rule to repeat itself::
+
+    >>> from peak.events.trellis import repeat, ReadOnlyCell
+    >>> def counter():
+    ...     if counter.value == 10:
+    ...         return counter.value
+    ...     repeat()
+    ...     return counter.value + 1
+    >>> counter = ReadOnlyCell(counter, 1)
+    >>> counter.value
+    10
+
+
+Sensors and Connectors
+----------------------
+
+    >>> class MyConnector(trellis.AbstractConnector):
+    ...     def connect(self, sensor):
+    ...         print "connecting", sensor
+    ...         return sensor
+    ...     def disconnect(self, sensor, key):
+    ...         print "disconnecting", key
+
+    >>> c = trellis.Cell(MyConnector())
+    >>> c
+    Sensor(<bound method MyConnector.read of...>, None [uninitialized])
+
+    >>> print c.value
+    None
+
+    >>> c2 = trellis.Cell(lambda: c.value)
+
+    >>> print c2.value
+    connecting Sensor(<bound method MyConnector.read of...>, None)
+    None
+
+    >>> c.receive(42)
+    >>> c.value
+    42
+    >>> c2.value
+    42
+
+    >>> del c2
+    disconnecting Sensor(<bound method MyConnector.read of...>, 42)
+
+    >>> c.listening
+    NOT_GIVEN
+
+
+    >>> class Demo(trellis.Component):
+    ...     a = trellis.compute(lambda self:trellis.noop())
+    ...     a.connector()
+    ...     def _connect_a(self, sensor):
+    ...         print "connecting", sensor
+    ...         v = trellis.Value(42)
+    ...         # this read should not produce a dependency, because
+    ...         # connect/disconnect methods are in an implicit @modifier:
+    ...         v.value     
+    ...         return sensor
+    ...     a.disconnector()
+    ...     def _disconnect_a(self, sensor, key):
+    ...         print "disconnecting", key
+    ...     trellis.perform(optional=False)
+    ...     def p(self):
+    ...         poll()
+    ...         print "recalc"
+
+    >>> d = Demo()
+    recalc
+
+    >>> print d.a
+    recalc
+    None
+
+    >>> c = trellis.Cells(d)['a']
+    >>> c
+    Sensor(<bound method Demo.a of...>, None)
+
+    >>> c2 = trellis.Cell(lambda: c.value)
+
+    >>> print c2.value
+    recalc
+    connecting Sensor(<bound method Demo.a of...>, None)
+    recalc
+    None
+
+    >>> c.receive(42)
+    recalc
+
+    >>> c.value
+    42
+    >>> c2.value
+    42
+
+    >>> del c2
+    recalc
+    disconnecting Sensor(<bound method Demo.a of...>, 42)
+    recalc
+
+    >>> c.listening
+    NOT_GIVEN
+
+    >>> del d.__cells__['p']    # get rid of 'recalc' printing
+
+
+Effectors
+---------
+
+    >>> some_global = 42
+
+    >>> class GlobalConnector(MyConnector):
+    ...     def read(self):
+    ...         print "reading"
+    ...         return some_global
+
+    >>> c = trellis.Cell(GlobalConnector(), None)
+    >>> c.value
+    reading
+    42
+
+    >>> def writer():
+    ...     if c.was_set:
+    ...         print "writing", c.value
+    ...         global some_global
+    ...         some_global = c.value
+
+    >>> writer = trellis.Performer(writer)
+    connecting Effector(<bound method GlobalConnector.read of...>, 42)
+
+    >>> c2 = trellis.Cell(lambda: c.value)
+
+    >>> print c2.value
+    42
+
+    >>> c.value = 99
+    writing 99
+
+    >>> some_global
+    99
+
+    >>> c.value = 99
+
+    >>> some_global = 77
+    >>> c.receive(77)
+
+    >>> c2.value
+    77
+
+    >>> del c2, writer
+    disconnecting Effector(<bound method GlobalConnector.read of...>, 77)
+
+
+
+    >>> class X(trellis.Component):
+    ...     g = trellis.maintain(GlobalConnector())
+
+    >>> x = X()
+    reading
+
+    >>> x.g
+    77
+
+    >>> c2 = trellis.Cell(lambda: x.g)
+
+    >>> print c2.value
+    connecting Effector(<bound method GlobalConnector.read of...>, 77)
+    77
+    
+    >>> del c2
+    disconnecting Effector(<bound method GlobalConnector.read of...>, 77)
+
+
+Lazy cells
+----------
+
+    >>> c1=trellis.Value(66)
+
+    >>> def cantwrite():
+    ...     c1.value = 23
+
+    >>> c2=trellis.LazyCell(cantwrite)
+    >>> c2.value
+    Traceback (most recent call last):
+      ...
+    RuntimeError: Can't change objects during @perform or @compute
+
+    >>> def calc():
+    ...     return c1.value
+
+    >>> c2=trellis.LazyCell(calc)
+    >>> c2.value
+    66
+
+    >>> list(c2.iter_listeners())
+    []
+    >>> list(c2.iter_subjects())
+    []
+
+    >>> c3 = trellis.Cell(c2.get_value)
+    >>> c3.value
+    66
+
+    >>> list(c2.iter_listeners())
+    [ReadOnlyCell(<...get_value of LazyCell(<function calc...>, 66)>, 66)]
+
+    >>> list(c2.iter_subjects())
+    [Value(66)]
+
+    >>> del c3
+    >>> list(c2.iter_listeners())
+    []
+    >>> list(c2.iter_subjects())
+    []
+
+    >>> c2=trellis.LazyCell(lambda: {})
+    >>> c2.value
+    {}
+    >>> c2
+    Constant({})
+
+
+CellAttribute
+-------------
+
+    >>> x = trellis.CellAttribute(z=22)
+    Traceback (most recent call last):
+      ...
+    TypeError: CellAttribute() has no keyword argument 'z'
+
+    >>> x = trellis.CellAttribute.mkattr(initially=None, resetting_to=None)
+    Traceback (most recent call last):
+      ...
+    TypeError: Can't specify both 'initially' and 'resetting_to'
+
+    >>> x = trellis.CellAttribute.mkattr(initially=None, make=list)
+    Traceback (most recent call last):
+      ...
+    TypeError: Can't specify both a value and 'make'
+
+    >>> x = trellis.CellAttribute.mkattr(resetting_to=None, make=list)
+    Traceback (most recent call last):
+      ...
+    TypeError: Can't specify both a value and 'make'
+
+    >>> trellis.CellAttribute.mkattr(resetting_to=42).initial_value(None)
+    42
+
+    >>> trellis.CellAttribute.mkattr(initially=99).initial_value(None)
+    99
+
+    >>> trellis.CellAttribute.mkattr(make=list).initial_value(None)
+    []
+
+    >>> trellis.CellAttribute.mkattr(make=list).can_connect()
+    True
+
+    >>> trellis.CellAttribute.mkattr(resetting_to=42).can_connect()
+    True
+
+    >>> trellis.TodoProperty.mkattr(rule=list).can_connect()
+    False
+
+
+    >>> class Test(trellis.Component):
+    ...     t = trellis.todo(list)
+    ...     t.connector(lambda self: None)
+    Traceback (most recent call last):
+      ...
+    TypeError: TodoProperty('t') cannot have a .connector
+
+    >>> class Test(trellis.Component):
+    ...     t = trellis.todo(list)
+    ...     t.disconnector(lambda self: None)
+    Traceback (most recent call last):
+      ...
+    TypeError: TodoProperty('t') cannot have a .disconnector
+
+    >>> t = trellis.compute(lambda self: 42)
+    >>> t.connect, t.disconnect
+    (None, None)
+
+    >>> conn = lambda self:23
+    >>> t = t.connector(conn)
+    >>> t = t.connector(conn)
+    Traceback (most recent call last):
+      ...
+    TypeError: CellAttribute('t') already has a .connector
+
+    >>> t.connect is conn
+    True
+
+    >>> t.make_cell(int, 42, 't')
+    Traceback (most recent call last):
+      ...
+    TypeError: CellAttribute('t') is missing a .disconnector
+    
+    >>> disc = lambda self:99
+    >>> t = t.disconnector(disc)
+    >>> t = t.disconnector(disc)
+    Traceback (most recent call last):
+      ...
+    TypeError: CellAttribute('t') already has a .disconnector
+    
+    >>> t.disconnect is disc
+    True
+
+    >>> t.make_cell(int, 42, 't')
+    Sensor(<bound method int.t of 42>, None [uninitialized])
+
+    >>> t.connect = None    
+    >>> t.make_cell(int, 42, 't')
+    Traceback (most recent call last):
+      ...
+    TypeError: CellAttribute('t') is missing a .connector
+
+    >>> t.rule = AbstractConnector()
+    >>> t = t.connector(conn)
+    Traceback (most recent call last):
+      ...
+    TypeError: The rule for CellAttribute('t')  is itself a Connector
+
+    >>> t.disconnect = None    
+    >>> t = t.disconnector(disc)
+    Traceback (most recent call last):
+      ...
+    TypeError: The rule for CellAttribute('t')  is itself a Connector
+
+
+Pipe
+----
+
+    >>> p = trellis.Pipe()
+    >>> def show(): print p
+    >>> show = trellis.Performer(show)
+    []
+    >>> p.append(1)
+    [1]
+    []
+    >>> p.extend([2,3])
+    [2, 3]
+    []
+    >>> def add_many(*args):
+    ...     for arg in args:
+    ...         p.append(arg)
+    >>> add_many = trellis.modifier(add_many)
+
+    >>> add_many(7,8,9)
+    [7, 8, 9]
+    []
+
+    >>> def show(): print 42 in p
+    >>> show = trellis.Performer(show)
+    False
+
+    >>> p.append(27)
+    False
+    False
+
+    >>> p.append(42)
+    True
+    False
+    
+    >>> def show(): print list(p)
+    >>> show = trellis.Performer(show)
+    []
+    >>> p.append(99)
+    [99]
+    []
+
+    >>> def show(): print len(p)
+    >>> show = trellis.Performer(show)
+    0
+    >>> add_many(3,4,5)
+    3
+    0
+
+
+
+Cell Caches
+-----------
+
+    >>> class Demo(trellis.Component):
+    ...     cc = trellis.cellcache(lambda self, key: key)
+    ...     cc.connector()
+    ...     def cc_conn(self, key):
+    ...         print "connecting", key
+    ...     cc.disconnector()
+    ...     def cc_disc(self, key):
+    ...         print "disconnecting", key
+
+    >>> d = Demo()
+    >>> c1 = d.cc[1]
+    >>> c2 = d.cc[2]
+    >>> c1.value
+    1
+    >>> c2.value
+    2
+
+    >>> c = Cell(lambda: c1.value)
+    >>> c.value
+    connecting 1
+    1
+
+    >>> c = Cell(lambda: c2.value)
+    disconnecting 1
+
+    >>> c.value
+    connecting 2
+    2
+
+    >>> del c
+    disconnecting 2
+
+

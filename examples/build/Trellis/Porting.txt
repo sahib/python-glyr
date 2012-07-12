@@ -1,0 +1,181 @@
+----------------------------------------
+Porting Code from Older Trellis Versions
+----------------------------------------
+
+As of 0.7a1, the Trellis has a new API for specifying basic rules and value
+attributes.  This change was made in part for readability reasons, but also
+to support more fine-grained control over the behavior of rules and attributes,
+including new features like "lazy" cells.
+
+In 0.7a1, the older API was still present, but issued deprecation warnings.  In
+0.7a2, the old API has been removed altogether, so if you have not yet updated
+your code, you will need to install the 0.7a1 version to do your porting before
+you upgrade to 0.7a1 or higher.
+
+The following is a quick guide to the differences between the old and new APIs.
+
+
+Simple Replacements
+===================
+
+* The ``value`` and ``values`` functions have been renamed ``attr`` and
+  ``attrs`` respectively, to avoid confusion with the ``Value`` cell type.
+
+* Attributes of the form ``receiver(x)`` should be replaced by
+  ``attr(resetting_to=x)``.
+
+* Declarations of the form ``receivers(...)`` should be replaced by
+  ``attrs.resetting_to(...)``
+
+* ``@observer`` declarations should be replaced by ``@perform``
+
+* ``@optional @observer`` declarations should be replaced by
+  ``@perform(optional=True)``
+
+* The type formerly known as ``ObserverCell`` is now ``Performer``
+
+
+Rule Declarations
+=================
+
+There are now a wider variety of ways to declare rules.  Depending on the
+rule's intent or purpose, there are now three main ways to declare a rule:
+
+
+``make()`` Rules
+----------------
+
+Some rules, like ``x = trellis.rule(lambda self: {})``, are meant only to
+initialize an attribute value, which will then remain constant -- or at least
+will not be recalculated.  In the new API, the equivalent construct would be
+``x = trellis.make(dict)``.
+
+The argument to ``make()`` can currently be a function or a type.  If it's a
+function (or any other object with a ``__get__`` method), its ``__get__``
+method will be called to bind it to the object instance before calling it.
+Thus, you can use something like ``x = trellis.make(lambda self: self.foo)``,
+and have it work correctly as well.
+
+Individual make rules can also be made writable, by passing in a
+``writable=True`` keyword argument.  This allows you to translate code like
+this::
+
+    trellis.values(x = None)
+    trellis.rules(x = lambda self: {})
+
+into::
+
+    x = trellis.make(dict, writable=True)
+
+which is more compact and clearer about the code's intent.
+
+When writable, the created cell will be a ``Value`` instead of a ``Constant``.
+Either way, the cell will be "optional" (i.e., created only when needed),
+unless you pass in ``optional=False`` to the constructor, and the supplied
+rule will only be invoked once, before the cell is created.
+
+Note that in general, ``make`` rules should not read any other trellis values,
+since they will never be recalculated, and anything they *do* read will be
+treated as dependencies of any rule that caused the compute rule to be invoked.
+(A future version of the code may prevent ``make`` rules from accessing trellis
+values, by raising an error after the fact.)
+
+Finally, note that there is also a ``make.attrs()`` form available::
+
+    trellis.make.attrs(
+        x = dict,
+        y = list,
+        ...
+    )
+
+And that ``make()`` can also be used as a decorator, either as ``@make`` or
+using a 2.3-compatible ``make()`` form.  (And both decorator forms allow
+keyword arguments to be specified.)
+
+
+``compute`` Rules
+-----------------
+
+Rules that simply compute a value, with no side-effects or dependency on their
+previous value, can be specified using ``@compute`` or ``compute.attrs()``.
+
+Compute rules are both optional and "lazy".  If a compute rule has no
+listeners, in other words, it is not recalculated until the next time it is
+read.  Thus, it cannot enforce side effects or rely on its previous value.
+
+You can make a ``compute`` rule discrete, by passing in ``resetting_to=val``,
+where `val` is the value you would like the rule to automatically reset itself
+to between recalculations.
+
+However, if a ``compute`` rule is not discrete, it has the option of becoming
+``Constant`` if at runtime it stops depending on any other trellis values.
+
+You can specify multiple compute rules using ``compute.attrs()`` in place of
+the old ``rules()`` function.
+
+
+``maintain`` Rules
+------------------
+
+The ``maintain`` constructor should be used for rules that *must* be
+recalculated every time their dependencies change, even if there are no
+rules depending on their return value.  Unlike ``compute`` rules, ``maintain``
+rules always have a writable value, and can read their previous value as well
+as modify other trellis values and objects.
+
+A ``maintain`` rule can have an initial value (using the ``initially=`` or
+``make=`` keywords), or can be discrete (using the ``resetting_to=`` keyword).
+It can also be optional (by specifying ``optional=True``).
+
+The ``make`` keyword argument allows you to specify an initialization function,
+similar to the ``make()`` constructor, to initialize the value of the rule.
+This can be helpful for translating code like this::
+
+    @trellis.rule
+    def data(self):
+        data = self.data
+        if data is None:
+            data = {}
+        ...
+
+into this::
+
+    @trellis.maintain(make=dict)
+    def data(self):
+        data = self.data
+        ...
+
+In other words, the ``make`` keyword lets you initialize the value the
+attribute will have, before the first invocation of the rule.  (The
+``initially`` keyword does the same thing, but specifies a constant value
+instead of a callable that creates the value.)
+
+
+Rules With Values
+=================
+
+In the old API, it was possible to declare a rule and a value for the same
+attribute in two different locations.  In fact, it was required!
+
+In the new API, however, any value associated with a rule is declared with the
+rule's declaration, using the ``initially=`` or ``resetting_to=`` keywords.
+You may use ``initially`` to specify an initial value for ``maintain`` rules,
+and ``resetting_to`` to specify a reset value for any ``compute`` or
+``maintain`` rules that were previously ``@discrete``.
+
+
+Accessing Superclass Rules, Values, Etc.
+========================================
+
+Under the new API, you can obtain a previous rule definition using an
+expression like ``MyBaseClass.someattr.rule``.  This can be helpful in cases
+where you want to change an option used in the base class, e.g.::
+
+    # same rule, but should be 42 initially instead of 23
+    foo = trellis.maintain(MyBaseClass.foo.rule, initially=42)
+
+If you are using any of the special registries used by the old API (such as
+the ``CellRules`` add-on), you will need to use this approach instead, as
+the new API does not register things in the same way, and some or all of the
+registries will disappear altogether in 0.7a2.
+

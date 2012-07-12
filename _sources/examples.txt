@@ -11,11 +11,6 @@ Callbacks
 
 .. literalinclude:: examples/callback.py
 
-Database
---------
-
-.. literalinclude:: examples/callback.py
-
 Threads
 -------
 

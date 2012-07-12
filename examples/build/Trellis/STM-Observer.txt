@@ -1,0 +1,634 @@
+=================================================
+Software Transactional Memory (STM) And Observers
+=================================================
+
+The Trellis is built on a simple Python STM (Software Transactional Memory)
+and "Observer Pattern" implementation.  This document specifies how that
+implementation works, and tests it.
+
+You should read this document if you plan to implement your own Trellis cell
+types or other custom data structures, or if you just want to know how things
+work "under the hood".
+
+
+.. contents:: **Table of Contents**
+
+
+STM History
+===========
+
+An STM's job is to manage "atomic" changes to objects: i.e., multiple changes
+that must happen as a unit, or else be rolled back.
+
+To do this, the STM must have a **history**: a record of the actions taken
+within a given "atomic" change set.  The PEAK implementation of an STM history
+is found in the ``peak.events.stm`` module::
+
+    >>> from peak.events.stm import STMHistory
+
+    >>> hist = STMHistory()
+
+
+A history object's ``atomically()`` method invokes a function as an atomic
+operation, and its ``active`` attribute indicates whether it is currently
+performing an atomic operation::
+
+    >>> def is_active():
+    ...     print "Active?", hist.active
+
+
+    >>> is_active()
+    Active? False
+
+    >>> hist.atomically(is_active)
+    Active? True
+
+    >>> is_active()
+    Active? False
+
+Nested calls to ``atomically()`` simply execute the function, without affecting
+the history::
+
+    >>> def nested_operation():
+    ...     hist.atomically(is_active)
+    ...     is_active()
+
+    >>> hist.atomically(nested_operation)
+    Active? True
+    Active? True
+
+
+Commit/Abort Notices
+--------------------
+
+In order to get notification of commits or aborts, you can register Python
+"context managers" with the history, using the ``manage()`` method.  The
+``manage()`` method takes a context manager and calls its ``__enter__()``
+method immediately, then calls its ``__exit__()`` method when the current
+atomic operation is completed.  This allows things like locks or other
+resources to be acquired as the operation progresses, and then get
+automatically released when the operation is completed::
+
+    >>> class DemoManager(object):
+    ...     def __init__(self, num):
+    ...         self.num = num
+    ...     def __enter__(self):
+    ...         print "Manager", self.num, "entering"
+    ...     def __exit__(self, typ, val, tb):
+    ...         print "Manager", self.num, "exiting", typ, val, tb
+
+    >>> hist.manage(DemoManager(1))
+    Traceback (most recent call last):
+      ...
+    AssertionError: Can't manage without active history
+
+    >>> hist.atomically(hist.manage, DemoManager(2))
+    Manager 2 entering
+    Manager 2 exiting None None None
+
+The same context manager can be passed to ``manage`` repeatedly, but its
+enter/exit methods will only be called once::
+
+    >>> def multi_manage():
+    ...     mgr = DemoManager(3)
+    ...     hist.manage(mgr)
+    ...     hist.manage(mgr)
+
+    >>> hist.atomically(multi_manage)
+    Manager 3 entering
+    Manager 3 exiting None None None
+
+And if multiple context managers are registered, their ``__exit__`` methods
+are called in the opposite order from their ``__enter__`` methods::
+
+    >>> def multi_manage():
+    ...     hist.manage(DemoManager(4))
+    ...     hist.manage(DemoManager(5))
+
+    >>> hist.atomically(multi_manage)
+    Manager 4 entering
+    Manager 5 entering
+    Manager 5 exiting None None None
+    Manager 4 exiting None None None
+
+The ``__exit__()`` method is normally called with three ``None`` values, unless
+an exception occurs during the operation.  In that case, the ``sys.exc_info()``
+of the exception is passed in to the manager(s), before the exception is
+re-raised::
+
+    >>> def do_error():
+    ...     hist.manage(DemoManager(6))
+    ...     raise TypeError("Testing!")
+
+    >>> try:
+    ...     hist.atomically(do_error)
+    ... except TypeError:
+    ...     print "caught exception"
+    Manager 6 entering
+    Manager 6 exiting ...TypeError... Testing! <traceback object...>
+    caught exception
+
+The ``__exit__()`` method should not raise an error.  Also note that, unlike
+normal Python context managers, the return value of ``__exit__()`` is ignored.
+(In other words, STM context managers cannot cause an exception to be ignored.)
+
+If an ``__exit__()`` method *does* raise an error, however, subsequent context
+managers will be passed the type, value, and traceback of the failing manager,
+and the exception will be reraised::
+
+    >>> class ErrorManager(DemoManager):
+    ...     def __exit__(self, typ, val, tb):
+    ...         super(ErrorManager, self).__exit__(typ, val, tb)
+    ...         raise RuntimeError("Haha!")
+
+    >>> def manage_with_error():
+    ...     hist.manage(DemoManager(7))
+    ...     hist.manage(ErrorManager("error"))
+    ...     hist.manage(DemoManager(8))
+
+    >>> try:
+    ...     hist.atomically(manage_with_error)
+    ... except RuntimeError:
+    ...     print "caught exception"
+    Manager 7 entering
+    Manager error entering
+    Manager 8 entering
+    Manager 8 exiting None None None
+    Manager error exiting None None None
+    Manager 7 exiting ...RuntimeError... Haha! <traceback object...>
+    caught exception
+
+In other words, all context managers are guaranteed to have their ``__exit__``
+methods called, even if one fails.  The exception that comes out of the
+``atomically()`` call will be the most recently-raised exception.
+
+Last, but not least, history objects have a ``in_cleanup`` attribute that
+indicates whether they are currently in the process of comitting or aborting
+an operation.  This can be useful if context managers might call code that
+needs to behave differently during a commit/abort than during an atomic
+operation::
+
+    >>> hist.in_cleanup
+    False
+
+    >>> class CleanupManager:
+    ...     def __enter__(self):
+    ...         print "on entry:", hist.in_cleanup
+    ...     def __exit__(self, typ, val, tb):
+    ...         print "on exit:", hist.in_cleanup
+
+    >>> hist.atomically(hist.manage, CleanupManager())
+    on entry: False
+    on exit: True
+
+
+Undo, Rollback and Save Points
+------------------------------
+
+While you can use context managers to implement some forms of commit/rollback,
+it's easier for most things to use a history object's "undo" log.  The log
+records "undo actions": functions (and optional positional arguments) that can
+be used to undo whatever operations have been done so far.  For example::
+
+    >>> def undoing(msg):
+    ...     print "undoing", msg
+
+    >>> def with_undo():
+    ...     hist.on_undo(undoing, "op 1")
+    ...     hist.on_undo(undoing, "op 2")
+
+    >>> hist.atomically(with_undo)  # success, nothing gets undone
+
+Nothing happened here, because the operation completed successfully.  But if
+an error occurs, the undo functions are called in reverse order::
+
+    >>> def with_undo():
+    ...     hist.on_undo(undoing, "op 1")
+    ...     hist.on_undo(undoing, "op 2")
+    ...     raise TypeError("foo")
+
+    >>> try:
+    ...     hist.atomically(with_undo)
+    ... except TypeError:
+    ...     print "caught exception"
+    undoing op 2
+    undoing op 1
+    caught exception
+
+But this does NOT happen if the error occurs in a manager's ``__exit__()``
+method::
+
+    >>> def with_undo():
+    ...     hist.manage(ErrorManager("error"))
+    ...     hist.on_undo(undoing, "op 1")
+    ...     hist.on_undo(undoing, "op 2")
+
+    >>> try:
+    ...     hist.atomically(with_undo)
+    ... except RuntimeError:
+    ...     print "caught exception"
+    Manager error entering
+    Manager error exiting None None None
+    caught exception
+
+(That's because managers may be used to control locking or other context setups
+that need to still be in place for the undo's to be safe.)
+
+Note, by the way, that undo functions must NEVER raise errors, under any
+circumstances.  If they do, any undo functions that have *not* been called
+yet, will never *be* called.
+
+In addition to the automatic rollback on error, you can also record savepoints
+within an atomic operation, and then rollback to that savepoint at any time
+later::
+
+    >>> def with_savepoint():
+    ...     hist.on_undo(undoing, "op 1")
+    ...     sp = hist.savepoint()
+    ...     hist.on_undo(undoing, "op 2")
+    ...     hist.on_undo(undoing, "op 3")
+    ...     hist.rollback_to(sp)
+
+    >>> hist.atomically(with_savepoint)
+    undoing op 3
+    undoing op 2
+
+
+Commit Callbacks
+----------------
+
+If you want to defer an action until the overall operation is ready to commit,
+you can use the ``on_commit(func, *args)`` method::
+
+    >>> def do_something(msg):
+    ...     print "committing", msg
+
+    >>> def do_with_commit():
+    ...     hist.on_commit(do_something, "hello!")
+    ...     print "registered commit operation"
+
+    >>> hist.atomically(do_with_commit)
+    registered commit operation
+    committing hello!
+
+Commit actions are called in the order they are registered (before any
+managers) and their registrations are subject to undo::
+
+    >>> def do_with_commit_and_undo():
+    ...     hist.manage(DemoManager('test'))
+    ...     hist.on_commit(do_something, 1)
+    ...     sp = hist.savepoint()
+    ...     hist.on_commit(do_something, 2)
+    ...     hist.rollback_to(sp)
+    ...     hist.on_commit(do_something, 3)
+
+    >>> hist.atomically(do_with_commit_and_undo)
+    Manager test entering
+    committing 1
+    committing 3
+    Manager test exiting None None None
+
+Commit actions are also allowed to record undo actions, in case there is
+an error later in the commit process::
+
+    >>> def do_with_commit_and_undo():
+    ...     def f1():
+    ...         print "f1 running"
+    ...         hist.on_undo(f3)
+    ...     def f2():
+    ...         print "f2 running"
+    ...         raise AssertionError
+    ...     def f3():
+    ...         print "f3 running"
+    ...     hist.on_commit(f1)
+    ...     hist.on_commit(f2)
+
+    >>> try:
+    ...     hist.atomically(do_with_commit_and_undo)
+    ... except AssertionError:
+    ...     print "caught exception"
+    f1 running
+    f2 running
+    f3 running
+    caught exception
+
+And of course, commit actions are not run if an error occurs before they have
+a chance to run::
+
+    >>> def do_no_commit():
+    ...     hist.on_commit(do_something, "should not happen")
+    ...     raise AssertionError
+    >>> try:
+    ...     hist.atomically(do_no_commit)
+    ... except AssertionError:
+    ...     print "caught exception"
+    caught exception
+
+    
+Logged Setattr
+--------------
+
+As a convenience, you can use the ``change_attr()`` method of history objects
+to automatically log an undo function to restore the old value of the attribute
+being set::
+
+    >>> class SomeObject:
+    ...     pass
+
+    >>> s1 = SomeObject()
+    >>> s1.foo = 'bar'
+
+    >>> def setattr_normally():
+    ...     hist.change_attr(s1, 'foo', "baz")
+
+    >>> hist.atomically(setattr_normally)
+    >>> s1.foo
+    'baz'
+
+    >>> def setattr_rollback():
+    ...     hist.change_attr(s1, 'foo', "spam")
+    ...     raise TypeError
+
+    >>> hist.atomically(setattr_rollback)
+    Traceback (most recent call last):
+      ...
+    TypeError
+    
+    >>> s1.foo      # result is unchanged after rollback
+    'baz'
+
+As you can see, this saves you the work of recording the undo operation
+manually.
+
+
+The Observer Framework
+======================
+
+Above and beyond the bare STM system, the Trellis also needs a strong
+"observer" system that manages subjects, listeners, and the links between
+them::
+
+    >>> from peak.events import stm
+
+
+In addition, the observer framework supports calculating and caching the
+"safe recalculation order" of a network of subjects and listeners, so that
+listeners that modify other subjects are (generally) run before the listeners
+that depend on those subjects.  In the event that a listener modifies a subject
+that has already been read during a given recalculation, the recalculation
+order is adjusted, and the atomic operation's history is undone to the point
+where the modified subject was first read.  And, if two listeners interact
+in such a way that each is modifying something the other has read, then a
+``stm.CircularityError`` is raised, detailing what listeners were involved in
+the loop.
+
+
+Subjects, Listeners, and Links
+------------------------------
+
+The ``AbstractSubject`` and ``AbstractListener`` base classes are used to
+implement the observer pattern.  They must be subclassed to be used.  If you
+will be using a lot of instances, you can conserve memory by using ``__slots__``
+in your subclass to store the needed attributes, as shown::
+
+    >>> class Listener(stm.AbstractListener):
+    ...     __slots__ = '__weakref__', 'layer', 'next_subject'
+
+    >>> class Subject(stm.AbstractSubject):
+    ...     __slots__ = 'layer', 'next_listener'
+
+Listeners and Subjects can be many-to-many related.  That is, each listener may
+listen to zero or more subjects, and each subject can have zero or more
+listeners.  These relationships are created using ``Link`` objects::
+
+    >>> l1 = Listener()
+    >>> l2 = Listener()
+    >>> s1 = Subject()
+    >>> s2 = Subject()
+
+    >>> link11 = stm.Link(s1, l1)
+    >>> link21 = stm.Link(s2, l1)
+    >>> link12 = stm.Link(s1, l2)
+    >>> link22 = stm.Link(s2, l2)
+
+    >>> list(l1.iter_subjects())==list(l2.iter_subjects())==[s2, s1]
+    True
+    >>> list(s1.iter_listeners())==list(s2.iter_listeners())==[l2, l1]
+    True
+
+The relationship between a subject and its listeners is "weak"; that is, if
+a listener goes out of existence, all of the relevant links are unlinked from
+the relevant subjects' listener chains::
+
+    >>> del l1
+    >>> list(s1.iter_listeners())==list(s2.iter_listeners())==[l2]
+    True
+
+You can also explicitly break a link by calling its ``.unlink()`` method::
+
+    >>> link12.unlink()
+    >>> list(s1.iter_listeners())
+    []
+    >>> list(s2.iter_listeners())==[l2]
+    True
+
+Normally, however, you will not create or manage links explicitly, as they
+are automatically managed by the controller.
+
+
+Subjects
+~~~~~~~~
+
+A subject is an object that represents some state.  In the Trellis, non-constant
+cells are usually subjects, and the ones that have rules may also be listeners.
+When a listener reads or writes a subject, the occurrence must be recorded with
+the active ``Controller`` (see the section below on `Controllers`_).  In the
+process, the subject's context manager (if any) gets registered with the
+controller to receive `commit/abort notices`_.
+
+The observer framework doesn't dictate what a subject actually "is"; it could
+be a very simple object (like a single-valued cell), or very complex.  The
+framework requires only that subjects:
+
+1. derive from ``AbstractSubject``
+2. have a read/write ``next_listener`` attribute (initially ``None``)
+3. have a working ``iter_listeners()`` method
+4. have a readable ``manager`` attribute (referencing a context manager or
+   ``None``), and
+5. have a readable ``layer`` attribute (usually equalling zero).
+
+And of course, that the ``Controller`` be notified whenever the subject is
+"read" or "changed".  (What "changed" means, exactly, is up to you, but
+in practical terms, it means that any rule that previously "read" the subject
+would need to be recalculated.)
+
+
+Listeners
+~~~~~~~~~
+
+A listener is an executable object that depends on and/or modifies subjects.
+In the Trellis, cells with rules (including observers) are listeners, and some
+are also subjects.
+
+Like subjects, listeners must have a ``layer`` attribute which starts out at
+zero.  However, on a listener this attribute must be writable, as a listener's
+layer number can grow over time to reflect the subjects and listeners it
+depends on.  The active ``Controller`` automatically increases a listener's
+layer number as needed to keep it higher than the layer number of any listeners
+whose output it depends on.  That is, if one listener "A" modifies a subject
+that listener "B" depends on, then listener B's layer number must be kept
+higher than A's.
+
+If a listener has a ``layer`` of ``peak.util.extremes.Max``, its calculation
+order is special: it will not run until all other listeners have run, and it
+will execute during a special "read-only" commit phase, during which no changes
+are allowed.  (This is how ``@trellis.observer`` rules and ``ObserverCell``
+objects work -- they simply use a ``Max`` layer number.)
+
+Unlike subjects, listeners do not need a ``manager`` attribute.  (Unless, of
+course, they are also subjects!)  Listeners *must*, however:
+
+1. derive from ``AbstractListener``
+2. be weak-referenceable (i.e. have a ``__weakref__`` slot or not use slots)
+3. have a read/write ``next_subject`` attribute (initially ``None``)
+4. have a working ``iter_subjects()`` method, and
+5. have a read/write ``layer`` attribute  (initially zero)
+
+In addition, they must have the following methods:
+
+run()
+    Perform the actual work of the listener.  In the case of cells with rules,
+    this method runs the rule and then sets the cell's value to the result,
+    flagging the cell changed if applicable.  (Your methods can of course do
+    pretty much whatever you want here.)
+
+dirty()
+    This method is called whenever a dependency (i.e. a subject that was read
+    by a previous invocation of ``run()``) has changed.  If it returns a true
+    value, the ``Controller`` will schedule the listener for recalculation.
+    If it returns a false value, the ``Controller`` will assume that the
+    listener will be responsible for its own recalculation.  The default
+    implementation of this method (in ``AbstractListener``) just returns
+    ``True``, but if you wanted to implement a cell that didn't eagerly
+    recalculate, you could simply set a flag and return ``False`` instead.
+    The ``TaskCell`` type, for example, uses the ``dirty()`` method to schedule
+    the task with the ``EventLoop`` service.
+
+
+
+Controllers
+-----------
+
+A ``Controller`` is a more sophisticated version of an ``STMHistory``, that
+also schedules and tracks the execution of listeners (rules) and what subjects
+they've read or changed.  The Trellis uses a per-thread ``Controller`` instance
+to implement cell recalculation.  Controller objects have the following
+additional methods and attributes, many of which must be invoked by subjects
+or listeners in order to record their activity effectively:
+
+lock(`subject`)
+    Register the ``.manager`` of the `subject` to receive `commit/abort
+    notices`_ -- basically equivalent to ``.manage(subject.manager)`` if
+    ``subject.manager`` is not ``None``.  When you write methods that modify
+    subjects, you should generally call this method first, in case its
+    ``manager`` is (for example) a lock that should be held while modifying
+    the subject.
+    
+used(`subject`)
+    Record that the `subject` was "used" (i.e., read) by the current listener,
+    if any.  (This method automatically calls ``lock(subject)`` to ensure that
+    the subject's context manager, if any, is activated first.)
+
+changed(`subject`)
+    Record that the `subject` was "changed" by the current listener or by
+    external code.  (This method calls ``lock(subject)`` to ensure that the
+    subject's context manager, if any, is activated first, but you should
+    still call ``lock(subject)`` before actually making a change.)
+    
+schedule(`listener`, `source_layer=None`)
+    Put `listener` on the recalculation schedule, to be recalculated when its
+    layer is reached.  If `source_layer` is specified, and it's greater or
+    equal than ``listener.layer``, ``listener.layer`` will be increased, and
+    if necessary, its position in the recalculation schedule will be adjusted.
+
+cancel(`listener`)
+    Remove `listener` from the recalculation schedule, if it's currently
+    scheduled.
+
+current_listener
+    The listener that is currently being ``run()``, or ``None`` if no listener
+    is currently executing.
+    
+readonly
+    ``True`` if the controller is currently in the read-only commit phase where
+    observers are run and changes are prohibited.  ``False`` at all other
+    times.
+
+initialize(`listener`)
+    Explicitly invoke a ``listener.run()`` in a controlled manner.  This is
+    normally used only when a listener must be run for the first time, and
+    its output must be **immediately** available.  (Otherwise, it would be
+    enough to ``schedule()`` it for later.)  Cells use this method when their
+    value is read and they have not been initialized.
+
+    During the run, the ``Controller`` pretends that the listener was run in
+    a **previous** recalculation, for purposes of determining which rules were
+    run (and therefore may need undoing in the event of an order change) in the
+    current calculation.  The how's and why's of this are fairly tedious: just
+    remember that if you are trying to have your listener run for the first
+    time so its dependencies can be initialized, you should use this method
+    to do it.  (Since simply calling ``listener.run()`` won't set the
+    ``current_listener`` or track dependencies correctly.)
+    
+Note that most of these methods and attributes are only usable while an
+atomic action is in effect.  (That is, when the ``.active`` attribute is true.)
+The only exceptions are ``schedule()`` and ``cancel()``.
+
+
+The Singleton Controller
+------------------------
+
+During normal Trellis operation, there is only one ``Controller`` instance,
+which is available as ``trellis.ctrl``.  It is actually an instance of a
+``LocalController`` subclass, which is a ``threading.local``.  That is, even
+though it is a single object, it has thread-specific state, allowing it to
+be used as a singleton even by multithreaded programs.
+
+As a shortcut, the ``trellis`` module exports the following methods to its
+main namespace, so that you can use them without the ``ctrl.`` prefix:
+
+* ``on_commit()``
+* ``on_undo()``
+* ``atomically()``
+* ``manage()``
+* ``savepoint()``
+* ``rollback_to()``
+* ``change_attr()``
+* ``schedule()``
+* ``cancel()``
+* ``lock()``
+* ``used()``
+* ``changed()``
+* ``initialize()``
+
+Thus, ``trellis.on_commit()`` is a convenience shorthand for
+``trellis.ctrl.on_commit()``.  (You must still refer to the ``ctrl`` object for
+access to attributes such as ``ctrl.current_listener``.)
+
+If you wish to replace the standard ``LocalController`` (e.g. for testing or
+a specialized application), you must use the ``trellis.install_controller()``
+function, which replaces the shortcuts with the methods of the provided object,
+and sets ``trellis.ctrl`` to the replacement object.
+
+(Of course, this will only be useful if you do it before any modules import
+their own copy of ``trellis.ctrl`` or any of the shortcuts, or if they always
+prefix their uses with ``trellis.``.  It's thus best if you install your
+custom controller very early in the life of your program, if possible.)
+
+
+Creating Custom Cell Types (TBD)
+--------------------------------
+
+TODO: write up AbstractCell, ConstantMixin, value/get_value/set_value, etc.
+
+
