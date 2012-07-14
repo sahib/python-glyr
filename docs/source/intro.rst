@@ -54,3 +54,15 @@ and a reference. After all those theory chapters you are going to be rewarded
 by some practical examples.
 
 Please have *fun*.
+
+Other things to note?
+---------------------
+
+Please use a own useragent, if you integrate glyr into your application.
+You can set it via: :: 
+
+  qry.useragent = 'projectname/ver.si.on +(https://project.site)'
+
+Why? In case your application makes strange things and causes heavy traffic on
+the provider's sites, they may ban the user-agent that makes this requests.
+So, only your project gets (temporarly) banned, and not all libglyr itself.

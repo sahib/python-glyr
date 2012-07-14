@@ -12,6 +12,7 @@ if __name__ == '__main__':
 
     # Convert lyrics (bytestring) to a proper UTF-8 text
     try:
-        print(str(items[0].data, 'UTF-8'))
+        if len(items) > 0:
+            print(str(items[0].data, 'UTF-8'))
     except UnicodeError as err:
         print('Cannot display lyrics, conversion failed:', err)

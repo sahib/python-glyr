@@ -6,12 +6,18 @@ Most Simple
 
 .. literalinclude:: examples/simple.py
 
-Callbacks
----------
+Callbacks (also with Database)
+------------------------------
 
 .. literalinclude:: examples/callback.py
 
-Threads
--------
+Threads and Cancellation
+------------------------
 
 .. literalinclude:: examples/threads.py
+
+Database II
+-----------
+
+.. literalinclude:: examples/database2.py
+
