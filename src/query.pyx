@@ -12,7 +12,7 @@ cdef int _actual_callback(C.GlyrMemCache * c, C.GlyrQuery * q) with gil:
 
     py_callback = <object>q.callback.user_pointer
     pyq = query_from_pointer(q)
-    pyc = cache_from_pointer(c)
+    pyc = cache_from_pointer(c, False)
 
     status = py_callback(pyc, pyq)
 
@@ -51,6 +51,7 @@ cdef class Query:
     cdef C.GlyrQuery _cq
     cdef C.GlyrQuery * _cqp
     cdef Database _db_prop
+    cdef bool _new_query
 
     # Allocation on C-Side
     def __cinit__(self, new_query=True, **kwargs):
@@ -58,6 +59,7 @@ cdef class Query:
             C.glyr_query_init(&self._cq)
             self._cqp = &self._cq
             self._db_prop = None
+            self._new_query = new_query
 
             for key, value in kwargs.items():
                 Query.__dict__[key].__set__(self, value)
@@ -67,8 +69,15 @@ cdef class Query:
 
     # Deallocation on C-Side
     def __dealloc__(self):
-        C.glyr_query_destroy(self._cqp)
-        self._cqp = NULL
+        if self._new_query:
+            C.glyr_query_destroy(self._cqp)
+            self._cqp = NULL
+
+    def __repr__(self):
+        # I find this fascinating.
+        return '<' +  '\n'.join([str((key, Query.__dict__[key].__get__(self)))
+            for key, value in Query.__dict__.items()
+            if 'getset_descriptor' in str(type(value))]) + '>'
 
     ###########################################################################
     #         Lots of properties, these wrap the glyr_opt_* family()          #
@@ -139,8 +148,15 @@ cdef class Query:
         Max levenshtein distance difference for fuzzy matching.
 
         libglyr features fuzzy matching to enhance search results.
-        Look at the string "Equilibrium" and the accidentally mistyped version "Aquillibriu": Those strings will be compares using the "Levenshtein distance" (http://en.wikipedia.org/wiki/Levenshtein_distance) which basically counts the number of insert, substitute and delete operations to transform Equilibrium"" into "Aquillibriu". The distance in this case is 3 since three edit-operations are needed (one insert, substitute and deletion)
-        The fuzziness parameter is the maximum distance two strings may have to match. A high distance (like about 10) matches even badly mistyped strings, but also introduces bad results. Low settings however will omit some good results.
+        Look at the string "Equilibrium" and the accidentally mistyped version "Aquillibriu":
+        Those strings will be compares using the "Levenshtein distance"
+        (http://en.wikipedia.org/wiki/Levenshtein_distance) which basically counts the number of insert,
+        substitute and delete operations to transform Equilibrium"" into "Aquillibriu".
+        The distance in this case is 3 since three edit-operations are needed
+        (one insert, substitute and deletion)
+        The fuzziness parameter is the maximum distance two strings may have to match.
+        A high distance (like about 10) matches even badly mistyped strings, but also introduces bad results. Low settings
+        however will omit some good results.
         The default values is currently 4. To be more secure some correction is applied:
 
         Example:
@@ -264,9 +280,9 @@ cdef class Query:
         :database: An instance of plyr.Database
         """
         def __set__(self, Database database):
-            if hasattr(database, '_ptr'):
-                self._db_prop = database
-                C.glyr_opt_lookup_db(self._ptr(), database._ptr())
+            self._db_prop = database
+            C.glyr_opt_lookup_db(self._ptr(), database._ptr())
+
         def __get__(self):
             return self._db_prop
 
@@ -472,6 +488,7 @@ cdef class Query:
                   use error to find out what happened.
         """
         self_ptr = self._ptr()
+
         with nogil:
             item_list = C.glyr_get(self_ptr, NULL, NULL)
 

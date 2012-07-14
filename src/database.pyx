@@ -3,7 +3,7 @@ cimport glyr as C
 cdef int _db_proxy_callback(C.GlyrQuery * query, C.GlyrMemCache * cache, void * user_pointer) with gil:
     'Internally used proxy callback of foreach callback'
     cdef object py_func = <object>user_pointer
-    pyc = cache_from_pointer(cache)
+    pyc = cache_from_pointer(cache, False)
     pyq = query_from_pointer(query)
 
     status = py_func(pyq, pyc)

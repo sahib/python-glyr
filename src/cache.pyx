@@ -3,8 +3,8 @@ cimport glyr as C
 from libc.string cimport memcpy
 from libc.stdlib cimport malloc
 
-cdef cache_from_pointer(C.GlyrMemCache * ptr):
-    py_cache = Cache()
+cdef cache_from_pointer(C.GlyrMemCache * ptr, new_cache=True):
+    py_cache = Cache(new_struct=new_cache)
     py_cache._cm = ptr
     return py_cache
 
@@ -46,11 +46,12 @@ cdef class Cache:
     ###########################################################################
 
     cdef C.GlyrMemCache * _cm
+    cdef bool _new_struct
 
-    def __cinit__(self, **kwargs):
+    def __cinit__(self, new_struct=True, **kwargs):
         self._cm = C.glyr_cache_new()
-
         self._cm.data = memdup('', 0)
+        self._new_struct = new_struct
 
         for key, value in kwargs.items():
             Cache.__dict__[key].__set__(self, value)
@@ -59,7 +60,9 @@ cdef class Cache:
         return self._cm
 
     def __dealloc__(self):
-        C.glyr_cache_free(self._ptr())
+        if self._new_struct:
+            C.glyr_cache_free(self._ptr())
+            self._cm = NULL
 
     ###########################################################################
     #                        Other methods / functions                        #
