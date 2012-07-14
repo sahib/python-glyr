@@ -70,14 +70,15 @@
 
     <span class="c"># Convert lyrics (bytestring) to a proper UTF-8 text</span>
     <span class="k">try</span><span class="p">:</span>
-        <span class="k">print</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">items</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">data</span><span class="p">,</span> <span class="s">&#39;UTF-8&#39;</span><span class="p">))</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">items</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="k">print</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">items</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">data</span><span class="p">,</span> <span class="s">&#39;UTF-8&#39;</span><span class="p">))</span>
     <span class="k">except</span> <span class="ne">UnicodeError</span> <span class="k">as</span> <span class="n">err</span><span class="p">:</span>
         <span class="k">print</span><span class="p">(</span><span class="s">&#39;Cannot display lyrics, conversion failed:&#39;</span><span class="p">,</span> <span class="n">err</span><span class="p">)</span>
 </pre></div>
 </div>
 </div>
-<div class="section" id="callbacks">
-<h2>Callbacks<a class="headerlink" href="#callbacks" title="Permalink to this headline">¶</a></h2>
+<div class="section" id="callbacks-also-with-database">
+<h2>Callbacks (also with Database)<a class="headerlink" href="#callbacks-also-with-database" title="Permalink to this headline">¶</a></h2>
 <div class="highlight-python"><div class="highlight"><pre><span class="c">#!/usr/bin/env python</span>
 <span class="c"># -*- coding: utf-8 -*-</span>
 
@@ -86,6 +87,7 @@
 
 <span class="k">def</span> <span class="nf">on_item_received</span><span class="p">(</span><span class="n">cache</span><span class="p">,</span> <span class="n">query</span><span class="p">):</span>
     <span class="n">cache</span><span class="o">.</span><span class="n">print_cache</span><span class="p">()</span>
+    <span class="k">return</span> <span class="s">&#39;post_stop&#39;</span>
 
 
 <span class="k">if</span> <span class="n">__name__</span> <span class="o">==</span> <span class="s">&#39;__main__&#39;</span><span class="p">:</span>
@@ -107,34 +109,88 @@
 </pre></div>
 </div>
 </div>
-<div class="section" id="threads">
-<h2>Threads<a class="headerlink" href="#threads" title="Permalink to this headline">¶</a></h2>
+<div class="section" id="threads-and-cancellation">
+<h2>Threads and Cancellation<a class="headerlink" href="#threads-and-cancellation" title="Permalink to this headline">¶</a></h2>
 <div class="highlight-python"><div class="highlight"><pre><span class="c">#!/usr/bin/env python</span>
 <span class="c"># -*- coding: utf-8 -*-</span>
 
 <span class="kn">import</span> <span class="nn">plyr</span>
+<span class="kn">import</span> <span class="nn">random</span>
 <span class="kn">from</span> <span class="nn">time</span> <span class="kn">import</span> <span class="n">sleep</span>
 <span class="kn">from</span> <span class="nn">threading</span> <span class="kn">import</span> <span class="n">Thread</span>
 
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">Example on how to use the cancel() function of the Query.</span>
 
-<span class="k">def</span> <span class="nf">foo</span><span class="p">():</span>
-    <span class="n">i</span> <span class="o">=</span> <span class="mi">0</span>
-    <span class="k">while</span> <span class="bp">True</span><span class="p">:</span>
-        <span class="k">print</span><span class="p">(</span><span class="n">i</span><span class="p">)</span>
-        <span class="n">i</span> <span class="o">+=</span> <span class="mi">1</span>
-        <span class="n">sleep</span><span class="p">(</span><span class="mf">0.1</span><span class="p">)</span>
+<span class="sd">If a Query has been started it wil block the calling thread.</span>
+<span class="sd">This may be bad, when you want to do something different in the meantime.</span>
+<span class="sd">You can safely run qry.commit() in a seperate thread and do some data-sharing.</span>
+<span class="sd">But sometimes (e.g. on application exit) you may want to stop all running queries.</span>
+<span class="sd">This can be done via the cancel() function - it will stop all running downloads</span>
+<span class="sd">associated with this query.</span>
 
-<span class="n">worker</span> <span class="o">=</span> <span class="n">Thread</span><span class="p">(</span><span class="n">target</span><span class="o">=</span><span class="n">foo</span><span class="p">)</span>
-<span class="n">worker</span><span class="o">.</span><span class="n">start</span><span class="p">()</span>
+<span class="sd">There is no cancel_all() function. You gonna need a pool with all Queries you&#39;re running.</span>
 
-<span class="n">sleep</span><span class="p">(</span><span class="mi">3</span><span class="p">)</span>
+<span class="sd">Note: cancel() will not stop __imediately__, since some provider may do some</span>
+<span class="sd">      stuff that is hard to interrupt, but at least you do not need to care about cleanup.</span>
+<span class="sd">&quot;&quot;&quot;</span>
 
-<span class="k">while</span> <span class="bp">True</span><span class="p">:</span>
+<span class="k">if</span> <span class="n">__name__</span> <span class="o">==</span> <span class="s">&#39;__main__&#39;</span><span class="p">:</span>
+    <span class="c"># Some real query, that may take a bit longer</span>
+    <span class="c"># Notice this nice unicode support :-)</span>
     <span class="n">qry</span> <span class="o">=</span> <span class="n">plyr</span><span class="o">.</span><span class="n">Query</span><span class="p">(</span><span class="n">artist</span><span class="o">=</span><span class="s">&#39;Аркона&#39;</span><span class="p">,</span> <span class="n">title</span><span class="o">=</span><span class="s">&#39;Гой Роде Гой!&#39;</span><span class="p">,</span> <span class="n">get_type</span><span class="o">=</span><span class="s">&#39;lyrics&#39;</span><span class="p">)</span>
+
+    <span class="c"># Our worker thread</span>
+    <span class="k">def</span> <span class="nf">cancel_worker</span><span class="p">():</span>
+        <span class="n">sleep</span><span class="p">(</span><span class="n">random</span><span class="o">.</span><span class="n">randrange</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">4</span><span class="p">))</span>
+        <span class="k">print</span><span class="p">(</span><span class="s">&#39;cancel()&#39;</span><span class="p">)</span>
+        <span class="n">qry</span><span class="o">.</span><span class="n">cancel</span><span class="p">()</span>
+
+    <span class="c"># Spawn the thread.</span>
+    <span class="n">Thread</span><span class="p">(</span><span class="n">target</span><span class="o">=</span><span class="n">cancel_worker</span><span class="p">)</span><span class="o">.</span><span class="n">start</span><span class="p">()</span>
+
+    <span class="c"># Start the query, and let&#39;s see.</span>
     <span class="k">print</span><span class="p">(</span><span class="s">&#39;commit() started&#39;</span><span class="p">)</span>
-    <span class="n">qry</span><span class="o">.</span><span class="n">commit</span><span class="p">()</span>
+    <span class="n">items</span> <span class="o">=</span> <span class="n">qry</span><span class="o">.</span><span class="n">commit</span><span class="p">()</span>
     <span class="k">print</span><span class="p">(</span><span class="s">&#39;commit() finished&#39;</span><span class="p">)</span>
-    <span class="n">sleep</span><span class="p">(</span><span class="mi">3</span><span class="p">)</span>
+    <span class="k">print</span><span class="p">(</span><span class="s">&#39;Number of results:&#39;</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">items</span><span class="p">))</span>
+
+    <span class="c"># Print if any item was there, there shouldn&#39;t be any.</span>
+    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">items</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="k">print</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">items</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">data</span><span class="p">,</span> <span class="s">&#39;UTF-8&#39;</span><span class="p">))</span>
+</pre></div>
+</div>
+</div>
+<div class="section" id="database-ii">
+<h2>Database II<a class="headerlink" href="#database-ii" title="Permalink to this headline">¶</a></h2>
+<div class="highlight-python"><div class="highlight"><pre><span class="c">#!/usr/bin/env python</span>
+<span class="c"># -*- coding: utf-8 -*-</span>
+
+<span class="kn">import</span> <span class="nn">plyr</span>
+
+
+<span class="c"># This is called on each item found in the db</span>
+<span class="c"># The query is the search-query used to search this</span>
+<span class="c"># item, with artist, album and title filled.</span>
+<span class="c"># The query is useful to do delete or insert operations</span>
+<span class="c"># cache is the actual item, with all data filled.</span>
+<span class="k">def</span> <span class="nf">foreach_callback</span><span class="p">(</span><span class="n">query</span><span class="p">,</span> <span class="n">cache</span><span class="p">):</span>
+    <span class="k">print</span><span class="p">(</span><span class="n">query</span><span class="p">)</span>
+    <span class="n">cache</span><span class="o">.</span><span class="n">print_cache</span><span class="p">()</span>
+
+
+<span class="k">if</span> <span class="n">__name__</span> <span class="o">==</span> <span class="s">&#39;__main__&#39;</span><span class="p">:</span>
+    <span class="n">db</span> <span class="o">=</span> <span class="n">plyr</span><span class="o">.</span><span class="n">Database</span><span class="p">(</span><span class="s">&#39;/tmp&#39;</span><span class="p">)</span>
+
+    <span class="c"># Insert at least one dummy item, just in case the db is empty et</span>
+    <span class="c"># This will grow on each execution by one item.</span>
+    <span class="n">dummy_qry</span> <span class="o">=</span> <span class="n">plyr</span><span class="o">.</span><span class="n">Query</span><span class="p">(</span><span class="n">artist</span><span class="o">=</span><span class="s">&#39;Derp&#39;</span><span class="p">,</span> <span class="n">album</span><span class="o">=</span><span class="s">&#39;Derpson&#39;</span><span class="p">,</span> <span class="n">get_type</span><span class="o">=</span><span class="s">&#39;cover&#39;</span><span class="p">)</span>
+    <span class="n">dummy_itm</span> <span class="o">=</span> <span class="n">db</span><span class="o">.</span><span class="n">make_dummy</span><span class="p">()</span>
+    <span class="n">db</span><span class="o">.</span><span class="n">insert</span><span class="p">(</span><span class="n">dummy_qry</span><span class="p">,</span> <span class="n">dummy_itm</span><span class="p">)</span>
+
+    <span class="c"># Now iterate over all items in the db</span>
+    <span class="c"># and exit afterwards</span>
+    <span class="n">db</span><span class="o">.</span><span class="n">foreach</span><span class="p">(</span><span class="n">foreach_callback</span><span class="p">)</span>
 </pre></div>
 </div>
 </div>
@@ -150,8 +206,9 @@
   <ul>
 <li><a class="reference internal" href="#">Examples</a><ul>
 <li><a class="reference internal" href="#most-simple">Most Simple</a></li>
-<li><a class="reference internal" href="#callbacks">Callbacks</a></li>
-<li><a class="reference internal" href="#threads">Threads</a></li>
+<li><a class="reference internal" href="#callbacks-also-with-database">Callbacks (also with Database)</a></li>
+<li><a class="reference internal" href="#threads-and-cancellation">Threads and Cancellation</a></li>
+<li><a class="reference internal" href="#database-ii">Database II</a></li>
 </ul>
 </li>
 </ul>

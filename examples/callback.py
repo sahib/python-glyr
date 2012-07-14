@@ -6,6 +6,7 @@ import plyr
 
 def on_item_received(cache, query):
     cache.print_cache()
+    return 'post_stop'
 
 
 if __name__ == '__main__':

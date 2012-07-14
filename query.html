@@ -275,8 +275,15 @@ Defaults to True.</p>
 <tt class="descname">fuzzyness</tt><a class="headerlink" href="#plyr.Query.fuzzyness" title="Permalink to this definition">¶</a></dt>
 <dd><p>Max levenshtein distance difference for fuzzy matching.</p>
 <p>libglyr features fuzzy matching to enhance search results.
-Look at the string &#8220;Equilibrium&#8221; and the accidentally mistyped version &#8220;Aquillibriu&#8221;: Those strings will be compares using the &#8220;Levenshtein distance&#8221; (<a class="reference external" href="http://en.wikipedia.org/wiki/Levenshtein_distance">http://en.wikipedia.org/wiki/Levenshtein_distance</a>) which basically counts the number of insert, substitute and delete operations to transform Equilibrium&#8221;&#8221; into &#8220;Aquillibriu&#8221;. The distance in this case is 3 since three edit-operations are needed (one insert, substitute and deletion)
-The fuzziness parameter is the maximum distance two strings may have to match. A high distance (like about 10) matches even badly mistyped strings, but also introduces bad results. Low settings however will omit some good results.
+Look at the string &#8220;Equilibrium&#8221; and the accidentally mistyped version &#8220;Aquillibriu&#8221;:
+Those strings will be compares using the &#8220;Levenshtein distance&#8221;
+(<a class="reference external" href="http://en.wikipedia.org/wiki/Levenshtein_distance">http://en.wikipedia.org/wiki/Levenshtein_distance</a>) which basically counts the number of insert,
+substitute and delete operations to transform Equilibrium&#8221;&#8221; into &#8220;Aquillibriu&#8221;.
+The distance in this case is 3 since three edit-operations are needed
+(one insert, substitute and deletion)
+The fuzziness parameter is the maximum distance two strings may have to match.
+A high distance (like about 10) matches even badly mistyped strings, but also introduces bad results. Low settings
+however will omit some good results.
 The default values is currently 4. To be more secure some correction is applied:</p>
 <p>Example:</p>
 <ul class="simple">

@@ -103,6 +103,17 @@ and a reference. After all those theory chapters you are going to be rewarded
 by some practical examples.</p>
 <p>Please have <em>fun</em>.</p>
 </div>
+<div class="section" id="other-things-to-note">
+<h2>Other things to note?<a class="headerlink" href="#other-things-to-note" title="Permalink to this headline">¶</a></h2>
+<p>Please use a own useragent, if you integrate glyr into your application.
+You can set it via:</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="n">qry</span><span class="o">.</span><span class="n">useragent</span> <span class="o">=</span> <span class="s">&#39;projectname/ver.si.on +(https://project.site)&#39;</span>
+</pre></div>
+</div>
+<p>Why? In case your application makes strange things and causes heavy traffic on
+the provider&#8217;s sites, they may ban the user-agent that makes this requests.
+So, only your project gets (temporarly) banned, and not all libglyr itself.</p>
+</div>
 </div>
 
 
@@ -118,6 +129,7 @@ by some practical examples.</p>
 <li><a class="reference internal" href="#useful-links">Useful links</a></li>
 <li><a class="reference internal" href="#installing">Installing</a></li>
 <li><a class="reference internal" href="#documentation">Documentation</a></li>
+<li><a class="reference internal" href="#other-things-to-note">Other things to note?</a></li>
 </ul>
 </li>
 </ul>
