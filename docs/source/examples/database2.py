@@ -3,7 +3,7 @@ import plyr
 
 def foreach_callback(query, cache):
     print(query)
-    print(cache)
+    cache.print_cache()
 
 
 if __name__ == '__main__':

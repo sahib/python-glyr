@@ -7,7 +7,7 @@ cdef int _db_proxy_callback(C.GlyrQuery * query, C.GlyrMemCache * cache, void * 
     pyq = query_from_pointer(query)
 
     status = py_func(pyq, pyc)
-    if status:
+    if status or status is None:
         return 0
     else:
         return -1
