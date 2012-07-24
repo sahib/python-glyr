@@ -6,8 +6,8 @@ Looking up Providers
 .. code-block:: python
 
    'albumlist': {
-               'optional' : ('album', 'title'),
-               'required' : ('artist'),
+               'optional' : ('album'),
+               'required' : (),
                'provider' : [{
                       'key'     : 'm',
                       'name'    : 'musicbrainz',
@@ -30,4 +30,5 @@ You get the idea. Use ``itertools`` and friends to get the data you want in a on
 
 .. note:: 
 
-   This dictionary gets built on import.
+   This dictionary gets built on import. Different version of libglyr may
+   deliver different providers.

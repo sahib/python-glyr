@@ -123,16 +123,20 @@
 <span class="sd">Example on how to use the cancel() function of the Query.</span>
 
 <span class="sd">If a Query has been started it wil block the calling thread.</span>
-<span class="sd">This may be bad, when you want to do something different in the meantime.</span>
-<span class="sd">You can safely run qry.commit() in a seperate thread and do some data-sharing.</span>
-<span class="sd">But sometimes (e.g. on application exit) you may want to stop all running queries.</span>
-<span class="sd">This can be done via the cancel() function - it will stop all running downloads</span>
-<span class="sd">associated with this query.</span>
+<span class="sd">This may be bad, when you want to do something</span>
+<span class="sd">different in the meantime. You can safely run qry.commit()</span>
+<span class="sd">in a seperate thread and do some data-sharing. But sometimes</span>
+<span class="sd">(e.g. on application exit) you may want to stop all running queries.</span>
+<span class="sd">This can be done via the cancel() function - it will stop</span>
+<span class="sd">all running downloads associated with this query.</span>
 
-<span class="sd">There is no cancel_all() function. You gonna need a pool with all Queries you&#39;re running.</span>
+<span class="sd">There is no cancel_all() function.</span>
+<span class="sd">You gonna need a pool with all Queries you&#39;re running.</span>
 
-<span class="sd">Note: cancel() will not stop __imediately__, since some provider may do some</span>
-<span class="sd">      stuff that is hard to interrupt, but at least you do not need to care about cleanup.</span>
+<span class="sd">Note: cancel() will not stop __imediately__,</span>
+<span class="sd">      since some provider may do some</span>
+<span class="sd">      stuff that is hard to interrupt,</span>
+<span class="sd">      but at least you do not need to care about cleanup.</span>
 <span class="sd">&quot;&quot;&quot;</span>
 
 <span class="k">if</span> <span class="n">__name__</span> <span class="o">==</span> <span class="s">&#39;__main__&#39;</span><span class="p">:</span>

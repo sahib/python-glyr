@@ -19,33 +19,45 @@ Useful links
 
     http://sahib.github.com/glyr/doc/html/index.html
 
+**plyr on github:**
+
+    https://github.com/sahib/python-glyr
+
+**plyr on PyPI:**
+
+    http://pypi.python.org/pypi/plyr
 
 Installing
 ----------
 
-.. note::
-   
-   This Wrapper is beta-software. It may blow your computer totally unexcpted.
+**Using PyPI:**
 
-Install libglyr if not done yet. Either..
+  Use *pip* to install the package from source: ::
 
-- ... compile from Source: https://github.com/sahib/glyr/wiki/Compiling
-- ... or use the package your distribution provides.
-- ... in doubt, compile yourself.
+    sudo pip install plyr
 
-    
-Install *cython* if not done yet: ::
 
-   sudo pip install cython
+**Manual Installation (most recent):**
 
-Build & install the Wrapper: ::
-
-   git clone git://github.com/sahib/python-glyr.git
-   cd python-glyr
-   sudo python setup.py install
-
-Documentation
--------------
+  Install libglyr if not done yet. Either..
+  
+  - ... compile from Source: https://github.com/sahib/glyr/wiki/Compiling
+  - ... or use the package your distribution provides.
+  - ... in doubt, compile yourself. I only test the latest version.
+  
+      
+  Install *cython* if not done yet: ::
+  
+     sudo pip install cython
+  
+  Build & install the Wrapper: ::
+  
+     git clone git://github.com/sahib/python-glyr.git
+     cd python-glyr
+     sudo python setup.py install
+  
+Documentation?
+--------------
 
 Silly question. You're looking at it. 
 But when we're on it: There are only a few chapters, since there
@@ -66,3 +78,9 @@ You can set it via: ::
 Why? In case your application makes strange things and causes heavy traffic on
 the provider's sites, they may ban the user-agent that makes this requests.
 So, only your project gets (temporarly) banned, and not all libglyr itself.
+
+TODOs:
+------
+
+- Finish libglyr; clean up API -> may break this here. (*sigh*!)
+- Make a Provider Test-table, and replace the old ruby tests with that. (There be dragons).

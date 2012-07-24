@@ -10,16 +10,20 @@ from threading import Thread
 Example on how to use the cancel() function of the Query.
 
 If a Query has been started it wil block the calling thread.
-This may be bad, when you want to do something different in the meantime.
-You can safely run qry.commit() in a seperate thread and do some data-sharing.
-But sometimes (e.g. on application exit) you may want to stop all running queries.
-This can be done via the cancel() function - it will stop all running downloads
-associated with this query.
+This may be bad, when you want to do something
+different in the meantime. You can safely run qry.commit()
+in a seperate thread and do some data-sharing. But sometimes
+(e.g. on application exit) you may want to stop all running queries.
+This can be done via the cancel() function - it will stop
+all running downloads associated with this query.
 
-There is no cancel_all() function. You gonna need a pool with all Queries you're running.
+There is no cancel_all() function.
+You gonna need a pool with all Queries you're running.
 
-Note: cancel() will not stop __imediately__, since some provider may do some
-      stuff that is hard to interrupt, but at least you do not need to care about cleanup.
+Note: cancel() will not stop __imediately__,
+      since some provider may do some
+      stuff that is hard to interrupt,
+      but at least you do not need to care about cleanup.
 """
 
 if __name__ == '__main__':

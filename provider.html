@@ -60,8 +60,8 @@
 <h1>Looking up Providers<a class="headerlink" href="#looking-up-providers" title="Permalink to this headline">¶</a></h1>
 <p><tt class="docutils literal"><span class="pre">plyr.PROVIDERS</span></tt> contains a nested dict modelling all compiled in fetchers and providers.</p>
 <div class="highlight-python"><div class="highlight"><pre><span class="s">&#39;albumlist&#39;</span><span class="p">:</span> <span class="p">{</span>
-            <span class="s">&#39;optional&#39;</span> <span class="p">:</span> <span class="p">(</span><span class="s">&#39;album&#39;</span><span class="p">,</span> <span class="s">&#39;title&#39;</span><span class="p">),</span>
-            <span class="s">&#39;required&#39;</span> <span class="p">:</span> <span class="p">(</span><span class="s">&#39;artist&#39;</span><span class="p">),</span>
+            <span class="s">&#39;optional&#39;</span> <span class="p">:</span> <span class="p">(</span><span class="s">&#39;album&#39;</span><span class="p">),</span>
+            <span class="s">&#39;required&#39;</span> <span class="p">:</span> <span class="p">(),</span>
             <span class="s">&#39;provider&#39;</span> <span class="p">:</span> <span class="p">[{</span>
                    <span class="s">&#39;key&#39;</span>     <span class="p">:</span> <span class="s">&#39;m&#39;</span><span class="p">,</span>
                    <span class="s">&#39;name&#39;</span>    <span class="p">:</span> <span class="s">&#39;musicbrainz&#39;</span><span class="p">,</span>
@@ -84,7 +84,8 @@
 <p>You get the idea. Use <tt class="docutils literal"><span class="pre">itertools</span></tt> and friends to get the data you want in a oneliner.</p>
 <div class="admonition note">
 <p class="first admonition-title">Note</p>
-<p class="last">This dictionary gets built on import.</p>
+<p class="last">This dictionary gets built on import. Different version of libglyr may
+deliver different providers.</p>
 </div>
 </div>
 
