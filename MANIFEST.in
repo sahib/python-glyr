@@ -1,0 +1,4 @@
+include setup.py
+include src/*.pyx
+include src/*.pxd
+include README.rst

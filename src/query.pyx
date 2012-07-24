@@ -280,8 +280,9 @@ cdef class Query:
         :database: An instance of plyr.Database
         """
         def __set__(self, Database database):
-            self._db_prop = database
-            C.glyr_opt_lookup_db(self._ptr(), database._ptr())
+            if database is not None:
+                self._db_prop = database
+                C.glyr_opt_lookup_db(self._ptr(), database._ptr())
 
         def __get__(self):
             return self._db_prop
@@ -507,4 +508,8 @@ cdef class Query:
     property error:
         'String representation of internally happened error (might be "No Error")'
         def __get__(self):
-            return _stringify(<char*>C.glyr_strerror(self._ptr().q_errno))
+            rc = _stringify(<char*>C.glyr_strerror(self._ptr().q_errno))
+            if rc == 'No error':
+                return ''
+            else:
+                return rc

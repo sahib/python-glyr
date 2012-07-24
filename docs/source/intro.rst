@@ -31,7 +31,7 @@ Install libglyr if not done yet. Either..
 
 - ... compile from Source: https://github.com/sahib/glyr/wiki/Compiling
 - ... or use the package your distribution provides.
-- ... in doubt, compile yourself.
+- ... in doubt, compile yourself. I only test the latest version.
 
     
 Install *cython* if not done yet: ::
@@ -44,8 +44,8 @@ Build & install the Wrapper: ::
    cd python-glyr
    sudo python setup.py install
 
-Documentation
--------------
+Documentation?
+--------------
 
 Silly question. You're looking at it. 
 But when we're on it: There are only a few chapters, since there
@@ -66,3 +66,9 @@ You can set it via: ::
 Why? In case your application makes strange things and causes heavy traffic on
 the provider's sites, they may ban the user-agent that makes this requests.
 So, only your project gets (temporarly) banned, and not all libglyr itself.
+
+TODOs:
+------
+
+- Finish libglyr; clean up API -> may break this here. (*sigh*!)
+- Make a Provider Test-table, and replace the old ruby tests with that. (There be dragons).
