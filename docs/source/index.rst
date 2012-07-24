@@ -27,7 +27,7 @@ Contents:
 
 .. note::
 
-  The version of this wrapper will follow mirror libglyr's version.
+  The version of this wrapper will mirror libglyr's version.
 
 Indices and tables
 ==================

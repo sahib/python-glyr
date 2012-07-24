@@ -19,31 +19,43 @@ Useful links
 
     http://sahib.github.com/glyr/doc/html/index.html
 
+**plyr on github:**
+
+    https://github.com/sahib/python-glyr
+
+**plyr on PyPI:**
+
+    http://pypi.python.org/pypi/plyr
 
 Installing
 ----------
 
-.. note::
-   
-   This Wrapper is beta-software. It may blow your computer totally unexcpted.
+**Using PyPI:**
 
-Install libglyr if not done yet. Either..
+  Use *pip* to install the package from source: ::
 
-- ... compile from Source: https://github.com/sahib/glyr/wiki/Compiling
-- ... or use the package your distribution provides.
-- ... in doubt, compile yourself. I only test the latest version.
+    sudo pip install plyr
 
-    
-Install *cython* if not done yet: ::
 
-   sudo pip install cython
+**Manual Installation (most recent):**
 
-Build & install the Wrapper: ::
-
-   git clone git://github.com/sahib/python-glyr.git
-   cd python-glyr
-   sudo python setup.py install
-
+  Install libglyr if not done yet. Either..
+  
+  - ... compile from Source: https://github.com/sahib/glyr/wiki/Compiling
+  - ... or use the package your distribution provides.
+  - ... in doubt, compile yourself. I only test the latest version.
+  
+      
+  Install *cython* if not done yet: ::
+  
+     sudo pip install cython
+  
+  Build & install the Wrapper: ::
+  
+     git clone git://github.com/sahib/python-glyr.git
+     cd python-glyr
+     sudo python setup.py install
+  
 Documentation?
 --------------
 
