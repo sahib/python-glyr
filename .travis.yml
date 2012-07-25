@@ -3,3 +3,4 @@ python:
   - "3.2"
 # command to install dependencies
 install: pip install cython --use-mirrors
+script: python tests/query.py
