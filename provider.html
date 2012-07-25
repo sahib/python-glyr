@@ -59,14 +59,14 @@
   <div class="section" id="looking-up-providers">
 <h1>Looking up Providers<a class="headerlink" href="#looking-up-providers" title="Permalink to this headline">¶</a></h1>
 <p><tt class="docutils literal"><span class="pre">plyr.PROVIDERS</span></tt> contains a nested dict modelling all compiled in fetchers and providers.</p>
-<div class="highlight-python"><div class="highlight"><pre><span class="s">&#39;albumlist&#39;</span><span class="p">:</span> <span class="p">{</span>
-            <span class="s">&#39;optional&#39;</span> <span class="p">:</span> <span class="p">(</span><span class="s">&#39;album&#39;</span><span class="p">),</span>
-            <span class="s">&#39;required&#39;</span> <span class="p">:</span> <span class="p">(),</span>
-            <span class="s">&#39;provider&#39;</span> <span class="p">:</span> <span class="p">[{</span>
-                   <span class="s">&#39;key&#39;</span>     <span class="p">:</span> <span class="s">&#39;m&#39;</span><span class="p">,</span>
-                   <span class="s">&#39;name&#39;</span>    <span class="p">:</span> <span class="s">&#39;musicbrainz&#39;</span><span class="p">,</span>
-                   <span class="s">&#39;quality&#39;</span> <span class="p">:</span> <span class="mi">95</span><span class="p">,</span>
-                   <span class="s">&#39;speed&#39;</span>   <span class="p">:</span> <span class="mi">95</span>
+<div class="highlight-python"><div class="highlight"><pre><span class="s">&#39;albumlist&#39;</span><span class="p">:</span> <span class="p">{</span>                                 <span class="c"># The name of this fetcher</span>
+            <span class="s">&#39;required&#39;</span> <span class="p">:</span> <span class="p">(</span><span class="s">&#39;artist&#39;</span><span class="p">),</span>           <span class="c"># A list of required properties</span>
+            <span class="s">&#39;optional&#39;</span> <span class="p">:</span> <span class="p">(),</span>                   <span class="c"># A list of properties that are optional</span>
+            <span class="s">&#39;provider&#39;</span> <span class="p">:</span> <span class="p">[{</span>                    <span class="c"># A list of providers this fetcher can use</span>
+                   <span class="s">&#39;key&#39;</span>     <span class="p">:</span> <span class="s">&#39;m&#39;</span><span class="p">,</span>            <span class="c"># one-char identifier of this provider (rarely used)</span>
+                   <span class="s">&#39;name&#39;</span>    <span class="p">:</span> <span class="s">&#39;musicbrainz&#39;</span><span class="p">,</span>  <span class="c"># Full name of this provider</span>
+                   <span class="s">&#39;quality&#39;</span> <span class="p">:</span> <span class="mi">95</span><span class="p">,</span>             <span class="c"># subjective quality (0/100)</span>
+                   <span class="s">&#39;speed&#39;</span>   <span class="p">:</span> <span class="mi">95</span>              <span class="c"># subjective speed (0/100)</span>
             <span class="p">},</span>
             <span class="p">{</span>
                    <span class="o">...</span> <span class="n">next_provider</span> <span class="o">...</span>

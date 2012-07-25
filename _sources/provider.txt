@@ -5,15 +5,15 @@ Looking up Providers
 
 .. code-block:: python
 
-   'albumlist': {
-               'optional' : ('album'),
-               'required' : (),
-               'provider' : [{
-                      'key'     : 'm',
-                      'name'    : 'musicbrainz',
-                      'quality' : 95,
-                      'speed'   : 95
-               },
+   'albumlist': {                                 # The name of this fetcher
+               'required' : ('artist'),           # A list of required properties
+               'optional' : (),                   # A list of properties that are optional
+               'provider' : [{                    # A list of providers this fetcher can use
+                      'key'     : 'm',            # one-char identifier of this provider (rarely used)
+                      'name'    : 'musicbrainz',  # Full name of this provider
+                      'quality' : 95,             # subjective quality (0/100)
+                      'speed'   : 95              # subjective speed (0/100)
+               }, 
                {
                       ... next_provider ...
                }]

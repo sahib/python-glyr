@@ -28,11 +28,10 @@ On the next commit you will get this item instead of an empty return,
 you can check for it via: ::
 
   if returned_cache.rating is -1:
-     # it's a dummy
+     pass  # it's a dummy
   else:
-     # real item
+     pass  # real item
 
-TODO: __eq__ for Cache
 
 Reference
 ---------

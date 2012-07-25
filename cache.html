@@ -69,9 +69,9 @@ a checksum, an optional imageformat and some more.</p>
 <h2>What can I do with one?<a class="headerlink" href="#what-can-i-do-with-one" title="Permalink to this headline">¶</a></h2>
 <p>Caches can be...</p>
 <ul class="simple">
-<li>... committed to a local database (see next section)</li>
-<li>... written to HD via it&#8217;s <tt class="docutils literal"><span class="pre">write()</span></tt> method.</li>
-<li>... printed to stdout via <tt class="docutils literal"><span class="pre">print()</span></tt>, currently <tt class="docutils literal"><span class="pre">__repr__</span></tt> is not implemented.</li>
+<li>… committed to a local database (see next section)</li>
+<li>… written to HD via it&#8217;s <tt class="docutils literal"><span class="pre">write()</span></tt> method.</li>
+<li>… printed to stdout via <tt class="docutils literal"><span class="pre">print()</span></tt>, currently <tt class="docutils literal"><span class="pre">__repr__</span></tt> is not implemented.</li>
 </ul>
 <p>You can use the <em>data</em> property to get the actual metadata.
 This is always a bytestring, even with lyrics.
@@ -85,6 +85,11 @@ You have to convert it to the desired encoding (e.g. utf-8) like this:</p>
 Use the Query-Property <strong>force_utf8</strong> to only retrieve valid utf-8 textitems.</p>
 </div>
 <p>The <em>data</em> property is settable. Setting will also cause the size and checksum to be adjusted.</p>
+<div class="admonition note">
+<p class="first admonition-title">Note</p>
+<p class="last">Cache implements the __eq__ and __ne__ operator, which will compare only the data properties.
+This is meant to be a shortcut, since comparing data is usually the only thing you want to compare.</p>
+</div>
 </div>
 <div class="section" id="reference">
 <h2>Reference<a class="headerlink" href="#reference" title="Permalink to this headline">¶</a></h2>

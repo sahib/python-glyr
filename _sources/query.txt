@@ -17,7 +17,8 @@ Whenever you want to retrieve some metadata you use a Query: ::
     # (you can even commit it more than once)
     items = qry.commit()
 
-    # Well, great. Now we have one songtext. Since libglyr may return more than one item,
+    # Well, great. Now we have one songtext.
+    # Since libglyr may return more than one item,
     # commit() always returns a list. The default value is 1 item though.
     # The list contains ,,Caches'', which are basically any sort of metadata.
     print(items[0].data)

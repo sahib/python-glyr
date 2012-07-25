@@ -72,7 +72,8 @@
 <span class="c"># (you can even commit it more than once)</span>
 <span class="n">items</span> <span class="o">=</span> <span class="n">qry</span><span class="o">.</span><span class="n">commit</span><span class="p">()</span>
 
-<span class="c"># Well, great. Now we have one songtext. Since libglyr may return more than one item,</span>
+<span class="c"># Well, great. Now we have one songtext.</span>
+<span class="c"># Since libglyr may return more than one item,</span>
 <span class="c"># commit() always returns a list. The default value is 1 item though.</span>
 <span class="c"># The list contains ,,Caches&#39;&#39;, which are basically any sort of metadata.</span>
 <span class="k">print</span><span class="p">(</span><span class="n">items</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">data</span><span class="p">)</span>
