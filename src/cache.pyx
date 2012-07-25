@@ -59,6 +59,12 @@ cdef class Cache:
     cdef C.GlyrMemCache * _ptr(self):
         return self._cm
 
+    def __richcmp__(self, other, int op):
+        if op == 2:
+            return self.data == other.data
+        elif op == 3:
+            return not self.__eq__(other)
+
     def __dealloc__(self):
         if self._new_struct:
             C.glyr_cache_free(self._ptr())

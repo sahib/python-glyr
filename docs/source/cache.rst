@@ -13,10 +13,10 @@ What can I do with one?
 -----------------------
 
 Caches can be...
-
-- ... committed to a local database (see next section)
-- ... written to HD via it's ``write()`` method.
-- ... printed to stdout via ``print()``, currently ``__repr__`` is not implemented.
+ 
+- … committed to a local database (see next section)
+- … written to HD via it's ``write()`` method.
+- … printed to stdout via ``print()``, currently ``__repr__`` is not implemented.
 
 
 You can use the *data* property to get the actual metadata.
@@ -32,6 +32,12 @@ You have to convert it to the desired encoding (e.g. utf-8) like this: ::
 
 
 The *data* property is settable. Setting will also cause the size and checksum to be adjusted.
+
+
+.. note::
+  
+  Cache implements the __eq__ and __ne__ operator, which will compare only the data properties.
+  This is meant to be a shortcut, since comparing data is usually the only thing you want to compare.
 
 
 Reference

@@ -80,7 +80,7 @@ cdef class Database:
 
         See also: http://sahib.github.com/glyr/doc/html/libglyr-Cache.html#glyr-db-delete
 
-        :query: the search query)
+        :query: the search query
         :returns: the number of deleted items
         """
         return C.glyr_db_delete(self._ptr(), query._ptr())
