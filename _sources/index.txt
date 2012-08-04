@@ -9,7 +9,8 @@ Python-glyr documentation
 .. note::
 
   This wrapper is not Python2 compatible,
-  and has only been tested with Cython 0.16, Python 3.2.3 and libglyr 0.9.9
+  and has only been tested with Cython 0.16, Python 3.2.3 and libglyr 1.0.0,
+  but should work for every backward-compatible version.
 
 Contents:
 
