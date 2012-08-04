@@ -14,6 +14,16 @@ cdef extern from "glyr/glyr.h":
 #                                  Enums                                  #
 ###########################################################################
 
+    ctypedef enum GLYR_NORMALIZATION:
+        NORMALIZE_NONE       "GLYR_NORMALIZE_NONE"
+        NORMALIZE_MODERATE   "GLYR_NORMALIZE_MODERATE"
+        NORMALIZE_AGGRESSIVE "GLYR_NORMALIZE_AGGRESSIVE"
+        NORMALIZE_ARTIST     "GLYR_NORMALIZE_ARTIST"
+        NORMALIZE_ALBUM      "GLYR_NORMALIZE_ALBUM"
+        NORMALIZE_TITLE      "GLYR_NORMALIZE_TITLE"
+        NORMALIZE_ALL        "GLYR_NORMALIZE_ALL"
+
+
     ctypedef enum GLYR_DATA_TYPE:
         TYPE_NOIDEA           "GLYR_TYPE_NOIDEA"
         TYPE_LYRICS           "GLYR_TYPE_LYRICS"
@@ -64,8 +74,8 @@ cdef extern from "glyr/glyr.h":
         GET_LYRICS             "GET_LYRICS"
         GET_ARTIST_PHOTOS      "GET_ARTIST_PHOTOS"
         GET_ARTISTBIO          "GET_ARTISTBIO"
-        GET_SIMILIAR_ARTISTS   "GET_SIMILIAR_ARTISTS"
-        GET_SIMILIAR_SONGS     "GET_SIMILIAR_SONGS"
+        GET_SIMILAR_ARTISTS    "GET_SIMILAR_ARTISTS"
+        GET_SIMILAR_SONGS      "GET_SIMILAR_SONGS"
         GET_ALBUM_REVIEW       "GET_ALBUM_REVIEW"
         GET_TRACKLIST          "GET_TRACKLIST"
         GET_TAGS               "GET_TAGS"
@@ -113,6 +123,7 @@ cdef extern from "glyr/glyr.h":
         char * musictree_path
         inner_callback callback
         GLYR_ERROR q_errno
+        GLYR_NORMALIZATION normalization
 
     ctypedef struct GlyrMemCache:
         char  * data
@@ -209,6 +220,7 @@ cdef extern from "glyr/glyr.h":
     GLYR_ERROR glyr_opt_db_autowrite(GlyrQuery * s, bool write_to_db)
     GLYR_ERROR glyr_opt_db_autoread(GlyrQuery * s, bool read_from_db)
     GLYR_ERROR glyr_opt_musictree_path(GlyrQuery * s, char * musictree_path)
+    GLYR_ERROR glyr_opt_normalize(GlyrQuery * s, GLYR_NORMALIZATION norm)
 
     # Reflection
     GlyrFetcherInfo * glyr_info_get()

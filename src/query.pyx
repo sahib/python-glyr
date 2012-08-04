@@ -24,13 +24,54 @@ cdef int _actual_callback(C.GlyrMemCache * c, C.GlyrQuery * q) with gil:
         return C.E_OK
 
 
-
 cdef query_from_pointer(C.GlyrQuery * query):
     'Internally used, wraps a GlyrQuery into a Query'
     pyq = Query(new_query=False)
     pyq._cqp = query
     return pyq
 
+
+cdef C.GLYR_NORMALIZATION _convert_py_to_normenum(object python_tuple):
+    'Convert a tuple of ("aggressive", "artist", "album") to a enum'
+    #cdef C.GLYR_NORMALIZATION en = <C.GLYR_NORMALIZATION>0
+    cdef unsigned en = 0
+    for elem in python_tuple:
+        if elem == 'aggressive':
+            en |= C.NORMALIZE_AGGRESSIVE
+        elif elem == 'moderate':
+            en |= C.NORMALIZE_MODERATE
+        elif elem == 'none':
+            en |= C.NORMALIZE_NONE
+        elif elem == 'artist':
+            en |= C.NORMALIZE_ARTIST
+        elif elem == 'album':
+            en |= C.NORMALIZE_ALBUM
+        elif elem == 'title':
+            en |= C.NORMALIZE_TITLE
+        elif elem == 'all':
+            en |= C.NORMALIZE_ALL
+
+    return <C.GLYR_NORMALIZATION>en
+
+
+cdef object _convert_normenum_to_py(C.GLYR_NORMALIZATION norm):
+    py_tup = []
+    if norm & C.NORMALIZE_AGGRESSIVE:
+        py_tup.append('aggressive')
+    if norm & C.NORMALIZE_MODERATE:
+        py_tup.append('moderate')
+    if norm & C.NORMALIZE_NONE:
+        py_tup.append('none')
+    if norm & C.NORMALIZE_ARTIST:
+        py_tup.append('artist')
+    if norm & C.NORMALIZE_ALBUM:
+        py_tup.append('album')
+    if norm & C.NORMALIZE_TITLE:
+        py_tup.append('title')
+    if norm & C.NORMALIZE_ALL:
+        py_tup.append('all')
+
+    return tuple(py_tup)
 
 cdef class Query:
     """
@@ -466,6 +507,24 @@ cdef class Query:
             C.glyr_opt_musictree_path(self._ptr(), byte_musictree_path)
         def __get__(self):
             return _stringify(self._ptr().musictree_path)
+
+    property normalize:
+        """
+        Define how much input artist/album/title is normalized.
+
+        Normalization can be enabled for artist and album only with e.g.: ::
+
+            ('artist', 'album', 'moderate')
+
+        :norm: A tuple containg one, or many of "artist", "album",
+               "title", "aggressive", "moderate", "none"
+        """
+        def __set__(self, norm):
+            cdef C.GLYR_NORMALIZATION en = <C.GLYR_NORMALIZATION>0
+            en = _convert_py_to_normenum(norm)
+            C.glyr_opt_normalize(self._ptr(), en)
+        def __get__(self):
+            return _convert_normenum_to_py(self._ptr().normalization)
 
     property do_download:
         """
