@@ -78,9 +78,3 @@ You can set it via: ::
 Why? In case your application makes strange things and causes heavy traffic on
 the provider's sites, they may ban the user-agent that makes this requests.
 So, only your project gets (temporarly) banned, and not all libglyr itself.
-
-TODOs:
-------
-
-- Finish libglyr; clean up API -> may break this here. (*sigh*!)
-- Make a Provider Test-table, and replace the old ruby tests with that. (There be dragons).
