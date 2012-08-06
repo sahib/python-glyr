@@ -154,7 +154,7 @@ cdef class Query:
         :get_type_value: Any of the above strings, may do nothing with a bad type!
         """
         def __set__(self, value):
-            if type(value) is str:
+            if hasattr(value, 'upper'):
                 byte_value = _bytify(value)
                 actual_type = C.glyr_string_to_get_type(byte_value)
             else:
