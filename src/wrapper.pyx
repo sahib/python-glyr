@@ -27,11 +27,11 @@ cdef _stringify(char * bytestring):
     if bytestring is NULL:
         return ''
     else:
-        return str(bytestring, 'UTF-8')
+        return bytestring.decode('UTF-8')
 
 
 
 # We use UTF-8 anyways everywhere
 cdef _bytify(string):
     'Convert str to bytes, using utf-8'
-    return bytes(string, 'UTF-8')
+    return string.encode('UTF-8')
