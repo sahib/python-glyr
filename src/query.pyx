@@ -149,7 +149,7 @@ cdef class Query:
 
         For a complete list use: ::
 
-          print(list(plyr.PROVIDER.keys()))
+          print(list(plyr.PROVIDERS.keys()))
 
         :get_type_value: Any of the above strings, may do nothing with a bad type!
         """
