@@ -112,6 +112,7 @@ cdef class Query:
     cdef C.GlyrQuery * _cqp
     cdef Database _db_prop
     cdef bool _new_query
+    cdef object _current_callback
 
     # Allocation on C-Side
     def __cinit__(self, new_query=True, **kwargs):
@@ -120,6 +121,7 @@ cdef class Query:
             self._cqp = &self._cq
             self._db_prop = None
             self._new_query = new_query
+            self._current_callback = None
 
             for key, value in kwargs.items():
                 Query.__dict__[key].__set__(self, value)
@@ -471,6 +473,7 @@ cdef class Query:
         # just cast it back if you do __get__
         def __set__(self, object py_func):
             C.glyr_opt_dlcallback(self._ptr(), <C.DL_callback>_actual_callback, <void*>py_func)
+            self._current_callback = py_func
         def __get__(self):
             if self._ptr().callback.user_pointer is NULL:
                 return None
