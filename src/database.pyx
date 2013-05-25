@@ -88,8 +88,8 @@ cdef class Database:
         """
         Insert a Cache manually into the database.
 
-        :cache: The Cache to insert.
         :query: The Query describing artist, album, title, get_type
+        :cache: The Cache to insert.
         """
         C.glyr_db_insert(self._ptr(), query._ptr(), cache._ptr())
 
@@ -153,10 +153,14 @@ cdef class Database:
         :query: The search query.
         :cache: The Cache to replace the item.
         """
-        if len(md5sum) < 33:
-            raise ValueError('checksum has to be at least 33 bytes long')
+        if len(md5sum) < 32:
+            raise ValueError('checksum has to be at least 32 bytes long')
 
         cdef unsigned char byte_cksum[16]
         py_string_ckssum = _bytify(md5sum)
         C.glyr_string_to_md5sum(py_string_ckssum, byte_cksum)
-        C.glyr_db_replace(self._ptr(), byte_cksum, query._ptr(), cache._ptr())
+
+        if query is not None and cache is not None:
+            C.glyr_db_replace(self._ptr(), byte_cksum, query._ptr(), cache._ptr())
+        else:
+            C.glyr_db_replace(self._ptr(), byte_cksum, NULL, NULL)

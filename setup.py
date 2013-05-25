@@ -16,7 +16,7 @@ setup(
     cmdclass = {'build_ext': build_ext},
     ext_modules = [Extension("plyr", ["src/glyr.pyx"], libraries=['glyr'])],
     name='plyr',
-    version='1.0.0',
+    version='1.0.1',
     author='Christopher Pahl',
     author_email='sahib@online.de',
     url='http://sahib.github.com/python-glyr/intro.html',
