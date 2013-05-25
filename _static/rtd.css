@@ -13,14 +13,14 @@
  */
 
 /* RTD colors
- * light blue: #e8ecef
+ * light blue: #EDE4D8
  * medium blue: #8ca1af
- * dark blue: #465158
+ * dark blue: rgba(160, 109, 52, 1.0)
  * dark grey: 
  *
- * medium blue hover: #697983;
+ * medium blue hover: rgba(255, 255, 255, 0.25);
  * green highlight: #8ecc4c
- * light blue (project bar): #e8ecef
+ * light blue (project bar): #EDE4D8
  */
 
 @import url("basic.css");
@@ -31,14 +31,14 @@ body {
     font: 100%/1.5 "ff-meta-web-pro-1","ff-meta-web-pro-2",Arial,"Helvetica Neue",sans-serif; 
     text-align: center;
     color: black;
-    background-color: #465158;
+    background-color: rgba(135, 57, 34, 1.0);
     padding: 0;
     margin: 0;
 }
 
 div.document {
     text-align: left;
-    background-color: #e8ecef;
+    background-color: #EDE4D8;
 }
 
 div.bodywrapper {
@@ -57,13 +57,13 @@ div.body {
 
 div.related {
     font-size: 1em;
-    background-color: #465158;
+    background-color: rgba(135, 57, 34, 1.0);
 }
 
 div.documentwrapper {
     float: left;
     width: 100%;
-    background-color: #e8ecef;
+    background-color: #EDE4D8;
 }
 
 
@@ -74,7 +74,7 @@ h1 {
     padding: 0.7em 0 0.3em 0;
     font-size: 1.5em;
     line-height: 1.15;
-    color: #000000;
+    color: #1f3744;
     clear: both;
 }
 
@@ -82,13 +82,13 @@ h2 {
     margin: 2em 0 0.2em 0;
     font-size: 1.35em;
     padding: 0;
-    color: #465158;
+    color: #335C72;
 }
 
 h3 {
     margin: 1em 0 -0.3em 0;
     font-size: 1.2em;
-    color: #6c818f;
+    color: #638fa6;
 }
 
 div.body h1 a, div.body h2 a, div.body h3 a, div.body h4 a, div.body h5 a, div.body h6 a {
@@ -118,9 +118,9 @@ h5 a.anchor:hover, h6 a.anchor:hover {
 
 /* Normal links get a pseudo-underline */
 a {
-    color: #444444;
+    color: #335C72;
     text-decoration: none;
-    border-bottom: 1px solid #CCCCCC;
+    border-bottom: 1px solid #99AEB9;
 }
 
 /* Links in sidebar, TOC, index trees and tables have no underline */
@@ -145,12 +145,12 @@ div.toctree-wrapper a:hover,
 
 /* Footer links */
 div.footer a {
-    color: #86989b;
+    color: rgba(171, 138, 93, 1.0);
     text-decoration: none;
     border: none;
 }
 div.footer a:hover {
-    color: #a6b8bb;
+    color: #261a0c;
     text-decoration: underline;
     border: none;
 }
@@ -181,7 +181,7 @@ div.related ul li {
     padding: 0.65em 0;
     float: left;
     display: block;
-    color: #ffffff; /* For the >> separators */
+    color: rgba(212, 195, 172, 0.5); /* For the >> separators */
     font-size: 0.8em;
 }
 
@@ -198,7 +198,7 @@ div.related ul li a {
     font-weight: bold;
     margin: 6px 0 6px 4px;
     line-height: 1.75em;
-    color: #ffffff;
+    color: rgba(212, 195, 172, 1.0);
     text-shadow: 0 1px rgba(0, 0, 0, 0.5);
     padding: 0.4em 0.8em;
     border: none;
@@ -207,7 +207,7 @@ div.related ul li a {
 /* previous / next / modules / index links look more like buttons */
 div.related ul li.right a {
     margin: 0.375em 0;
-    background-color: #697983;
+    background-color: rgba(255, 255, 255, 0.25);
     text-shadow: 0 1px rgba(0, 0, 0, 0.5);
     border-radius: 3px;
     -webkit-border-radius: 3px;
@@ -246,7 +246,7 @@ div.sphinxsidebar {
     width: 14em;
     font-size: 1em;
     text-align: left;
-    background-color: #e8ecef;
+    background-color: #EDE4D8;
 }
 
 div.sphinxsidebar img {
@@ -270,7 +270,7 @@ div.sphinxsidebar p {
     margin-top: 0;
     padding-left: 0;
     line-height: 130%;
-    background-color: #e8ecef;
+    background-color: #EDE4D8;
 }
 
 /* No bullets for nested lists, but a little extra indentation */
@@ -307,7 +307,7 @@ div.sphinxsidebar p.topless:hover {
 #searchbox {
     margin-top: 2em;
     margin-bottom: 1em;
-    background: #dddddd;
+    background: #DAC6AF;
     padding: 0.5em;
     border-radius: 6px;
     -moz-border-radius: 6px;
@@ -342,7 +342,7 @@ input[type="submit"] {
     margin: 0 0 0 -1px; /* -1px prevents a double-border with textbox */
     height: 22px;
     color: #444444;
-    background-color: #e8ecef;
+    background-color: #EDE4D8;
     padding: 1px 4px;
     font-weight: bold;
     border-top-right-radius: 3px;
@@ -360,7 +360,7 @@ input[type="submit"]:hover {
 div.sphinxsidebar p.searchtip {
     clear: both;
     padding: 0.5em 0 0 0;
-    background: #dddddd;
+    background: #DAC6AF;
     color: #666666;
     font-size: 0.9em;
 }
@@ -368,7 +368,7 @@ div.sphinxsidebar p.searchtip {
 /* Sidebar links are unusual */
 div.sphinxsidebar li a,
 div.sphinxsidebar p a {
-    background: #e8ecef; /* In case links overlap main content */
+    background: #EDE4D8; /* In case links overlap main content */
     border-radius: 3px;
     -moz-border-radius: 3px;
     -webkit-border-radius: 3px;
@@ -399,7 +399,7 @@ cite, code, tt {
 }
 
 tt {
-    background-color: #eeeeee;
+    background-color: rgba(0, 0, 0, 0.075);
     color: #444444;
 }
 
@@ -421,7 +421,7 @@ pre, #_fontwidthtest {
     line-height: 120%;
     padding: 0.5em;
     border: 1px solid #cccccc;
-    background-color: #eeeeee;
+    background-color: rgba(0, 0, 0, 0.075);
     border-radius: 6px;
     -moz-border-radius: 6px;
     -webkit-border-radius: 6px;
@@ -504,24 +504,24 @@ div.sidebar ul, div.sidebar ol {
 
 /* Admonitions and sidebars only */
 div.admonition, div.sidebar {
-    border: 1px solid #609060;
-    background-color: #e9ffe9;
+    border: 1px solid rgba(51, 77, 0, 1.0);
+    background-color: rgba(102, 153, 0, 0.1);
 }
 div.admonition p.admonition-title,
 div.sidebar p.sidebar-title {
-    background-color: #70a070;
-    border-bottom: 1px solid #609060;
+    background-color: rgba(102, 153, 0, 1.0);
+    border-bottom: 1px solid rgba(51, 77, 0, 1.0);
 }
 
 
 /* Warnings only */
 div.warning {
-    border: 1px solid #900000;
-    background-color: #ffe9e9;
+    border: 1px solid rgba(51, 13, 0, 1.0);
+    background-color: rgba(204, 51, 0, 0.1);
 }
 div.warning p.admonition-title {
-    background-color: #b04040;
-    border-bottom: 1px solid #900000;
+    background-color: rgba(204, 51, 0, 1.0);
+    border-bottom: 1px solid rgba(51, 13, 0, 1.0);
 }
 
 
@@ -570,8 +570,8 @@ span.highlight {
 }
 
 div.footer {
-    background-color: #465158;
-    color: #eeeeee;
+    background-color: rgba(135, 57, 34, 1.0);
+    color: rgba(212, 195, 172, 1.0);
     padding: 0 2em 2em 2em;
     clear: both;
     font-size: 0.8em;
@@ -628,7 +628,7 @@ p {
 
     div.related ul li {
         clear: both;
-        color: #465158;
+        color: rgba(160, 109, 52, 1.0);
         padding: 0.2em 0;
     }
 
@@ -640,7 +640,7 @@ p {
     }
 
     div.related ul li a {
-        color: #465158;
+        color: rgba(160, 109, 52, 1.0);
         padding-right: 0;
     }
 
